@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Novolis.Analyzers.CodeLength;
+using TUnit.Core;
 
 namespace Novolis.Analyzers.Tests.Analyzers;
 
@@ -37,7 +37,7 @@ public class CodeLengthAnalyzerTests
             var diagnostics = await compilation.WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(analyzer))
                 .GetAnalyzerDiagnosticsAsync();
 
-            diagnostics.Should().Contain(d => d.Id == "FRANK4010");
+            await Assert.That(diagnostics.Any(d => d.Id == "FRANK4010")).IsTrue();
         }
         finally
         {

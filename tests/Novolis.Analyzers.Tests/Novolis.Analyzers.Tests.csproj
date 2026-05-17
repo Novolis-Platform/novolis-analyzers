@@ -11,7 +11,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper" />
-    <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="TUnit" />
   </ItemGroup>

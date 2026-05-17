@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
-using FluentAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Novolis.Analyzers.AutoMapper;
+using TUnit.Core;
 
 namespace Novolis.Analyzers.Tests.Analyzers;
 
@@ -30,7 +30,7 @@ public class AutomapperAnalyzerTests
             TestContext.Current?.OutputWriter.WriteLine($"{diagnostic.Id}: {diagnostic.GetMessage()} at {diagnostic.Location}");
         }
 
-        diagnostics.Should().NotBeEmpty();
+        await Assert.That(diagnostics).IsNotEmpty();
     }
 
     private const string OriginalCode = """
