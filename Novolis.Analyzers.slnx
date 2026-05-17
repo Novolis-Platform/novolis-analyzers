@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Novolis.Analyzers.AutoMapper/Novolis.Analyzers.AutoMapper.csproj" />
+    <Project Path="src/Novolis.Analyzers.CodeLength/Novolis.Analyzers.CodeLength.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Novolis.Analyzers.Tests/Novolis.Analyzers.Tests.csproj" />
+  </Folder>
+</Solution>

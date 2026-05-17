@@ -1,14 +1,26 @@
 {
   "packages": {
-    "Novolis.Analyzers": {
+    "Novolis.Analyzers.AutoMapper": {
+      "project": "src/Novolis.Analyzers.AutoMapper/Novolis.Analyzers.AutoMapper.csproj",
       "paths": [
-        "src/Novolis.Analyzers/**",
-        "tests/**",
+        "src/Novolis.Analyzers.AutoMapper/**",
+        "tests/Novolis.Analyzers.Tests/**",
         "Directory.Build.props",
         "Directory.Packages.props",
-        "global.json"
-      ],
-      "project": "src/Novolis.Analyzers/Novolis.Analyzers.csproj"
+        "global.json",
+        "Novolis.Analyzers.slnx"
+      ]
+    },
+    "Novolis.Analyzers.CodeLength": {
+      "project": "src/Novolis.Analyzers.CodeLength/Novolis.Analyzers.CodeLength.csproj",
+      "paths": [
+        "src/Novolis.Analyzers.CodeLength/**",
+        "tests/Novolis.Analyzers.Tests/**",
+        "Directory.Build.props",
+        "Directory.Packages.props",
+        "global.json",
+        "Novolis.Analyzers.slnx"
+      ]
     }
   }
 }

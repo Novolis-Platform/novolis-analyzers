@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Novolis.Analyzers.Tests</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>$(NoWarn);FRANK4010;FRANK4011;AUTO001;CS8625;NU1903</NoWarn>
+    <EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
+    <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>false</IsRoslynComponent>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="TUnit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.AutoMapper\Novolis.Analyzers.AutoMapper.csproj" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.CodeLength\Novolis.Analyzers.CodeLength.csproj" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.AutoMapper\Novolis.Analyzers.AutoMapper.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.CodeLength\Novolis.Analyzers.CodeLength.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+</Project>
