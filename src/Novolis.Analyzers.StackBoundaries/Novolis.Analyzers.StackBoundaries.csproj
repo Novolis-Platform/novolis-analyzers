@@ -2,8 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>Novolis.Analyzers.StackBoundaries</PackageId>
-    <Version>0.1.0-preview.1</Version>
-    <Description>Roslyn analyzers enforcing Novolis stack boundary rules.</Description>
+<Description>Roslyn analyzers enforcing Novolis stack boundary rules.</Description>
     <IsPackable>true</IsPackable>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>

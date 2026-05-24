@@ -2,8 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>Novolis.Analyzers.CodeLength</PackageId>
-    <Version>0.1.0-preview.1</Version>
-    <Description>Roslyn analyzers for class and method line counts.</Description>
+<Description>Roslyn analyzers for class and method line counts.</Description>
     <IsPackable>true</IsPackable>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>

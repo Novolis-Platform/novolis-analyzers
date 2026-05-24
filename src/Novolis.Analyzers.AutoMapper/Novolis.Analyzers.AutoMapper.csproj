@@ -2,8 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>Novolis.Analyzers.AutoMapper</PackageId>
-    <Version>0.1.0-preview.1</Version>
-    <Description>Roslyn analyzer for AutoMapper .Map generic usage.</Description>
+<Description>Roslyn analyzer for AutoMapper .Map generic usage.</Description>
     <IsPackable>true</IsPackable>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
