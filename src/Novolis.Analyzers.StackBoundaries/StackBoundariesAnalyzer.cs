@@ -42,8 +42,17 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         customTags: ["CompilationEnd"]);
 
+    private static readonly DiagnosticDescriptor RaylibRenderingSceneRefRule = new(
+        "NOV2005",
+        "Raylib must not reference rendering scene packages",
+        "Assembly '{0}' must not reference '{1}' (scene/material types belong in novolis-rendering only)",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [DuplicateNumericsRule, Vector2Rule, CameraInMathRule, RaylibSimulationRefRule];
+        [DuplicateNumericsRule, Vector2Rule, CameraInMathRule, RaylibSimulationRefRule, RaylibRenderingSceneRefRule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -64,9 +73,6 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeCompilation(CompilationAnalysisContext context)
     {
-        if (!IsStackAssembly(context.Compilation))
-            return;
-
         var self = context.Compilation.AssemblyName ?? string.Empty;
         foreach (var reference in context.Compilation.ReferencedAssemblyNames)
         {
@@ -90,8 +96,27 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
                     self,
                     refName));
             }
+
+            if (self.StartsWith("Novolis.Raylib.", StringComparison.Ordinal)
+                && IsRenderingSceneAssembly(refName))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    RaylibRenderingSceneRefRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
         }
     }
+
+    private static bool IsRenderingSceneAssembly(string refName) =>
+        refName is "Novolis.Rendering.Scene"
+            or "Novolis.Rendering.Materials"
+            or "Novolis.Rendering.Compile"
+            or "Novolis.Rendering.Backends.Cpu"
+            or "Novolis.Rendering.Backends.Igpu"
+            or "Novolis.Rendering.Backends.Vulkan"
+            or "Novolis.Rendering.DependencyInjection";
 
     private static void AnalyzeType(SymbolAnalysisContext context)
     {
