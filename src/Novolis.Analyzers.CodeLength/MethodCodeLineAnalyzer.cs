@@ -5,13 +5,18 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Novolis.Analyzers.CodeLength;
 
+/// <summary>
+/// Reports a warning when a method exceeds <see cref="CodeLengthSettings.MethodMaxLines"/> statement lines.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class MethodCodeLineAnalyzer : DiagnosticAnalyzer
 {
     private DiagnosticDescriptor Rule => new TooManyLinesInMethodDescriptorProvider().GetDescriptor();
 		
+    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [Rule];
 		
+    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics);

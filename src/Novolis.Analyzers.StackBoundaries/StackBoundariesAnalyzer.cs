@@ -6,6 +6,13 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Novolis.Analyzers.StackBoundaries;
 
+/// <summary>
+/// Enforces Novolis stack boundary rules: BCL numerics, no <see cref="System.Numerics.Vector2"/>, camera placement, and Raylib/Simulation/rendering reference constraints.
+/// </summary>
+/// <remarks>
+/// Diagnostic IDs: <c>NOV2001</c> duplicate numerics, <c>NOV2002</c> Vector2, <c>NOV2003</c> camera in Math,
+/// <c>NOV2004</c> Raylib/Simulation cross-refs, <c>NOV2005</c> Raylib rendering scene refs.
+/// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
 {
@@ -51,9 +58,11 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         customTags: ["CompilationEnd"]);
 
+    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         [DuplicateNumericsRule, Vector2Rule, CameraInMathRule, RaylibSimulationRefRule, RaylibRenderingSceneRefRule];
 
+    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);

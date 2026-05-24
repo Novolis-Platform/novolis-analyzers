@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>Novolis.Analyzers.StackBoundaries</PackageId>
 <Description>Roslyn analyzers enforcing Novolis stack boundary rules.</Description>

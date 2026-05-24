@@ -6,11 +6,16 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Novolis.Analyzers.AutoMapper;
 
+/// <summary>
+/// Roslyn analyzer that reports <see cref="DiagnosticDescriptors.AutoMapperMap"/> when AutoMapper <c>Map&lt;&gt;()</c> is used incorrectly.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class AutoMapperMapAnalyzer : DiagnosticAnalyzer
 {
+    /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(DiagnosticDescriptors.AutoMapperMap);
 
+    /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);

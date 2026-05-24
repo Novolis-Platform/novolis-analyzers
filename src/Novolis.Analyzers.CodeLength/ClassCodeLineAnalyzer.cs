@@ -5,13 +5,18 @@ using Novolis.Analyzers.CodeLength.Internals;
 
 namespace Novolis.Analyzers.CodeLength;
 
+/// <summary>
+/// Reports a warning when a named type exceeds <see cref="CodeLengthSettings.ClassMaxLines"/> lines.
+/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class ClassCodeLineAnalyzer : DiagnosticAnalyzer
 {
 	private DiagnosticDescriptor Rule => new TooManyLinesInClassDescriptorProvider().GetDescriptor();
 		
+	/// <inheritdoc />
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [Rule];
 		
+	/// <inheritdoc />
 	public override void Initialize(AnalysisContext context)
 	{
 		context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics);

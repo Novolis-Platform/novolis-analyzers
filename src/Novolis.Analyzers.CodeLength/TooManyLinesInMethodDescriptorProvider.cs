@@ -3,8 +3,12 @@ using Microsoft.CodeAnalysis;
 
 namespace Novolis.Analyzers.CodeLength;
 
+/// <summary>
+/// Builds the <c>FRANK1010</c> diagnostic descriptor for oversized methods.
+/// </summary>
 public class TooManyLinesInMethodDescriptorProvider : IDiagnosticDescriptorProvider
 {
+    /// <inheritdoc />
     public DiagnosticDescriptor GetDescriptor() =>
         new DiagnosticDescriptorBuilder()
             .WithIdBuilder(new DiagnosticIdBuilder().WithCategory(DiagnosticCategories.Maintainability).WithId(10))

@@ -8,14 +8,20 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Novolis.Analyzers.AutoMapper;
 
+/// <summary>
+/// Code fix provider that adds a missing source type argument to AutoMapper <c>Map&lt;Destination&gt;()</c> invocations.
+/// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AutoMapperMapCodeFixProvider)), Shared]
 public class AutoMapperMapCodeFixProvider : CodeFixProvider
 {
+    /// <inheritdoc />
     public override ImmutableArray<string> FixableDiagnosticIds { get; } = 
         ImmutableArray.Create(DiagnosticDescriptors.AutoMapperMap.Id);
 
+    /// <inheritdoc />
     public override FixAllProvider? GetFixAllProvider() => null;
 
+    /// <inheritdoc />
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
