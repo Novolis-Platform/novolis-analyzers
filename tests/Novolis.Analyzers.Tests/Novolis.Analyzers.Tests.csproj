@@ -17,11 +17,16 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Novolis.Analyzers.AutoMapper\Novolis.Analyzers.AutoMapper.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.CodeLength\Novolis.Analyzers.CodeLength.csproj" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.StackBoundaries\Novolis.Analyzers.StackBoundaries.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.AutoMapper\Novolis.Analyzers.AutoMapper.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.CodeLength\Novolis.Analyzers.CodeLength.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.StackBoundaries\Novolis.Analyzers.StackBoundaries.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />
