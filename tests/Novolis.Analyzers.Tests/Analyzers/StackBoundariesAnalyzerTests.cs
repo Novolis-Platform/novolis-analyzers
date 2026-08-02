@@ -92,6 +92,153 @@ public sealed class StackBoundariesAnalyzerTests
         await Assert.That(diagnostics.Any(d => d.Id == "NOV2005")).IsTrue();
     }
 
+    [Test]
+    public async Task SimulationReferencingRaylib_ReportsNov2004()
+    {
+        var raylibRef = CSharpCompilation.Create("Novolis.Raylib.Game")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Simulation.Core { public static class SimApp { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Simulation.Core",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), raylibRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2004")).IsTrue();
+    }
+
+    [Test]
+    public async Task ObsoleteDuplicateNumericsType_DoesNotReportNov2001()
+    {
+        const string code = """
+                              using System;
+
+                              namespace Novolis.Math.Geometry;
+
+                              [Obsolete("Use System.Numerics instead")]
+                              public struct Vector3d
+                              {
+                                  public double X;
+                              }
+                              """;
+
+        var diagnostics = await AnalyzeMathAssemblyAsync(code);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2001")).IsFalse();
+    }
+
+    [Test]
+    public async Task ObsoleteClassDuplicateNumericsType_DoesNotReportNov2001()
+    {
+        const string code = """
+                              using System;
+
+                              namespace Novolis.Math.Geometry;
+
+                              [Obsolete("Use System.Numerics instead")]
+                              public class Vector3d
+                              {
+                                  public double X;
+                              }
+                              """;
+
+        var diagnostics = await AnalyzeMathAssemblyAsync(code);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2001")).IsFalse();
+    }
+
+    [Test]
+    public async Task ObsoleteStructDuplicateNumericsType_DoesNotReportNov2001()
+    {
+        const string code = """
+                              using System;
+
+                              namespace Novolis.Math.Geometry;
+
+                              [Obsolete("Use System.Numerics instead")]
+                              public struct Vector2d
+                              {
+                                  public double X;
+                              }
+                              """;
+
+        var diagnostics = await AnalyzeMathAssemblyAsync(code);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2001")).IsFalse();
+    }
+
+    [Test]
+    public async Task CustomObsoleteSyntaxOnClass_DoesNotReportNov2001()
+    {
+        const string code = """
+                              using System;
+
+                              namespace Novolis.Math.Geometry;
+
+                              [ObsoleteSyntaxMarker]
+                              public class Vector3d
+                              {
+                                  public double X;
+                              }
+
+                              [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+                              public sealed class ObsoleteSyntaxMarkerAttribute : Attribute
+                              {
+                              }
+                              """;
+
+        var diagnostics = await AnalyzeMathAssemblyAsync(code);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2001")).IsFalse();
+    }
+
+    [Test]
+    public async Task CustomObsoleteSyntaxOnStruct_DoesNotReportNov2001()
+    {
+        const string code = """
+                              using System;
+
+                              namespace Novolis.Math.Geometry;
+
+                              [ObsoleteSyntaxMarker]
+                              public struct Vector2d
+                              {
+                                  public double X;
+                              }
+
+                              [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+                              public sealed class ObsoleteSyntaxMarkerAttribute : Attribute
+                              {
+                              }
+                              """;
+
+        var diagnostics = await AnalyzeMathAssemblyAsync(code);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2001")).IsFalse();
+    }
+
+    [Test]
+    public async Task PhysicsAssembly_WithVector2_ReportsNov2002()
+    {
+        const string code = """
+                              using System.Numerics;
+
+                              namespace Novolis.Physics.Core;
+
+                              public static class Planar
+                              {
+                                  public static float Area(Vector2 v) => v.X * v.Y;
+                              }
+                              """;
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var references = new[]
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Numerics.Vector2).Assembly.Location),
+        };
+        var compilation = CSharpCompilation.Create("Novolis.Physics.Core", [tree], references);
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2002")).IsTrue();
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeMathAssemblyAsync(string code)
     {
         var tree = CSharpSyntaxTree.ParseText(code);

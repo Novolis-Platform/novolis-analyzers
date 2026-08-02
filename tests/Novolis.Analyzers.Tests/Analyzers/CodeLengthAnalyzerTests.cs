@@ -44,4 +44,39 @@ public class CodeLengthAnalyzerTests
             CodeLengthSettings.MethodMaxLines = previousMax;
         }
     }
+
+    [Test]
+    public async Task ClassCodeLineAnalyzer_ReportsWhenClassExceedsMaxLines()
+    {
+        var previousMax = CodeLengthSettings.ClassMaxLines;
+        try
+        {
+            CodeLengthSettings.ClassMaxLines = 1;
+
+            const string code = """
+                                public class Sample
+                                {
+                                    public void Method()
+                                    {
+                                        var a = 1;
+                                    }
+                                }
+                                """;
+
+            var tree = CSharpSyntaxTree.ParseText(code);
+            var compilation = CSharpCompilation.Create("CodeLengthTest")
+                .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+                .AddSyntaxTrees(tree);
+
+            var analyzer = new ClassCodeLineAnalyzer();
+            var diagnostics = await compilation.WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(analyzer))
+                .GetAnalyzerDiagnosticsAsync();
+
+            await Assert.That(diagnostics.Any(d => d.Id == "FRANK4011")).IsTrue();
+        }
+        finally
+        {
+            CodeLengthSettings.ClassMaxLines = previousMax;
+        }
+    }
 }
