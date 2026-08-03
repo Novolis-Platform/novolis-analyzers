@@ -1,3 +1,11 @@
+<!-- novolis-pkg-brand:start -->
+<p align="center">
+  <a href="https://github.com/Novolis-Platform/novolis-analyzers">
+    <img src="https://raw.githubusercontent.com/Novolis-Platform/.github/main/brand/logo-icon.svg" width="72" alt="Novolis"/>
+  </a>
+</p>
+<!-- novolis-pkg-brand:end -->
+
 # Novolis.Analyzers.CodeLength
 
 Roslyn analyzers that warn when classes or methods exceed configurable line limits (`FRANK1010`, `FRANK1011`).
@@ -36,3 +44,4 @@ Adjust thresholds at runtime via `CodeLengthSettings.ClassMaxLines` and `CodeLen
 ## Support
 
 Pre-release. Thresholds and diagnostic IDs may change.
+

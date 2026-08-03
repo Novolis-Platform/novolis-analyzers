@@ -1,3 +1,11 @@
+<!-- novolis-pkg-brand:start -->
+<p align="center">
+  <a href="https://github.com/Novolis-Platform/novolis-analyzers">
+    <img src="https://raw.githubusercontent.com/Novolis-Platform/.github/main/brand/logo-icon.svg" width="72" alt="Novolis"/>
+  </a>
+</p>
+<!-- novolis-pkg-brand:end -->
+
 # Novolis.Analyzers.StackBoundaries
 
 Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camera placement, Raylib/Simulation/rendering reference boundaries, Avalonia isolation, and closed-spine layer ranks (`NOV2001`–`NOV2007`).
@@ -39,3 +47,4 @@ Import via `Novolis.StackAnalyzers.props` in governance (applies to all `Novolis
 ## Support
 
 Pre-release. Rule IDs and covered assemblies may expand as the stack evolves.
+
