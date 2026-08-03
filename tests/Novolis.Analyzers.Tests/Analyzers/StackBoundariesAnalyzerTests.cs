@@ -239,6 +239,125 @@ public sealed class StackBoundariesAnalyzerTests
         await Assert.That(diagnostics.Any(d => d.Id == "NOV2002")).IsTrue();
     }
 
+    [Test]
+    public async Task SimulationReferencingAvalonia_ReportsNov2006()
+    {
+        var avaloniaRef = CSharpCompilation.Create("Avalonia")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Simulation.Core { public static class Sim { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Simulation.Core",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), avaloniaRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2006")).IsTrue();
+    }
+
+    [Test]
+    public async Task GameReferencingAvalonia_ReportsNov2006()
+    {
+        var avaloniaRef = CSharpCompilation.Create("Avalonia.Controls")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Game.Identity { public static class Id { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Game.Identity",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), avaloniaRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2006")).IsTrue();
+    }
+
+    [Test]
+    public async Task AvaloniaLayerReferencingAvalonia_DoesNotReportNov2006()
+    {
+        var avaloniaRef = CSharpCompilation.Create("Avalonia")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Avalonia.Controls { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Avalonia.Controls",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), avaloniaRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2006")).IsFalse();
+    }
+
+    [Test]
+    public async Task MathReferencingSimulation_ReportsNov2007()
+    {
+        var simRef = CSharpCompilation.Create("Novolis.Simulation.Core")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Math.Geometry { public static class G { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Math.Geometry",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), simRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2007")).IsTrue();
+    }
+
+    [Test]
+    public async Task SimulationReferencingGame_ReportsNov2007()
+    {
+        var gameRef = CSharpCompilation.Create("Novolis.Game.Identity")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Simulation.Core { public static class Sim { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Simulation.Core",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), gameRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2007")).IsTrue();
+    }
+
+    [Test]
+    public async Task GameReferencingSimulation_DoesNotReportNov2007()
+    {
+        var simRef = CSharpCompilation.Create("Novolis.Simulation.Humanoid")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Game.Humanoid { public static class H { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Game.Humanoid",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), simRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2007")).IsFalse();
+    }
+
+    [Test]
+    public async Task AvaloniaReferencingGame_DoesNotReportNov2007()
+    {
+        var gameRef = CSharpCompilation.Create("Novolis.Game.Identity")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Avalonia.Studio { public static class S { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Avalonia.Studio",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), gameRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2007")).IsFalse();
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeMathAssemblyAsync(string code)
     {
         var tree = CSharpSyntaxTree.ParseText(code);

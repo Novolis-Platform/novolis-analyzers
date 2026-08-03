@@ -1,6 +1,16 @@
 # Novolis.Analyzers.StackBoundaries
 
-Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camera placement, and Raylib/Simulation/rendering reference boundaries (`NOV2001`–`NOV2005`).
+Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camera placement, Raylib/Simulation/rendering reference boundaries, Avalonia isolation, and closed-spine layer ranks (`NOV2001`–`NOV2007`).
+
+| ID | Rule |
+|----|------|
+| `NOV2001` | No BCL numerics duplicates |
+| `NOV2002` | No `Vector2` in Math/Physics/Simulation |
+| `NOV2003` | No `Camera` in Math |
+| `NOV2004` | Raylib ↔ Simulation forbidden |
+| `NOV2005` | Raylib must not reference rendering scene packages |
+| `NOV2006` | Only `Novolis.Avalonia.*` may reference Avalonia UI assemblies |
+| `NOV2007` | Math → Physics → Simulation → Gaming → Avalonia (no upward refs) |
 
 ## Install
 
@@ -12,7 +22,7 @@ dotnet add package Novolis.Analyzers.StackBoundaries
 
 ## Quick start
 
-Import via `Novolis.StackAnalyzers.props` in governance, or add this package directly to Math, Physics, Simulation, or Raylib projects that must obey stack boundaries.
+Import via `Novolis.StackAnalyzers.props` in governance (applies to all `Novolis.*` libraries when the analyzers repo is checked out), or add this package directly. Package-level scan: `pwsh -File d:\novolis\novolis-governance\scripts\verify-layer-boundaries.ps1`.
 
 ## Related packages
 

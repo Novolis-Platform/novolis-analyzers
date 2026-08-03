@@ -7,11 +7,14 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace Novolis.Analyzers.StackBoundaries;
 
 /// <summary>
-/// Enforces Novolis stack boundary rules: BCL numerics, no <see cref="System.Numerics.Vector2"/>, camera placement, and Raylib/Simulation/rendering reference constraints.
+/// Enforces Novolis stack boundary rules: BCL numerics, no <see cref="System.Numerics.Vector2"/>,
+/// camera placement, Raylib/Simulation/rendering reference constraints, Avalonia isolation,
+/// and Math → Physics → Simulation → Gaming → Avalonia layer ranks.
 /// </summary>
 /// <remarks>
 /// Diagnostic IDs: <c>NOV2001</c> duplicate numerics, <c>NOV2002</c> Vector2, <c>NOV2003</c> camera in Math,
-/// <c>NOV2004</c> Raylib/Simulation cross-refs, <c>NOV2005</c> Raylib rendering scene refs.
+/// <c>NOV2004</c> Raylib/Simulation cross-refs, <c>NOV2005</c> Raylib rendering scene refs,
+/// <c>NOV2006</c> Avalonia refs outside Avalonia layer, <c>NOV2007</c> layer inversion.
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
@@ -58,9 +61,35 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         customTags: ["CompilationEnd"]);
 
+    private static readonly DiagnosticDescriptor AvaloniaOutsideLayerRule = new(
+        "NOV2006",
+        "Only Novolis.Avalonia.* libraries may depend on Avalonia",
+        "Assembly '{0}' must not reference '{1}' — Avalonia UI packages are reserved for Novolis.Avalonia.* (apps compose Avalonia at the product layer)",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
+    private static readonly DiagnosticDescriptor LayerInversionRule = new(
+        "NOV2007",
+        "Lower stack layers must not reference higher layers",
+        "Assembly '{0}' (layer {1}) must not reference '{2}' (layer {3}) — dependency direction is Math → Physics → Simulation → Gaming → Avalonia → Apps",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [DuplicateNumericsRule, Vector2Rule, CameraInMathRule, RaylibSimulationRefRule, RaylibRenderingSceneRefRule];
+    [
+        DuplicateNumericsRule,
+        Vector2Rule,
+        CameraInMathRule,
+        RaylibSimulationRefRule,
+        RaylibRenderingSceneRefRule,
+        AvaloniaOutsideLayerRule,
+        LayerInversionRule,
+    ];
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -72,7 +101,7 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         context.RegisterCompilationAction(AnalyzeCompilation);
     }
 
-    private static bool IsStackAssembly(Compilation compilation)
+    private static bool IsNumericStackAssembly(Compilation compilation)
     {
         var name = compilation.AssemblyName ?? string.Empty;
         return name.StartsWith("Novolis.Math.", StringComparison.Ordinal)
@@ -80,12 +109,77 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
             || name.StartsWith("Novolis.Simulation.", StringComparison.Ordinal);
     }
 
+    private static bool IsNovolisLibraryAssembly(string assemblyName) =>
+        assemblyName.StartsWith("Novolis.", StringComparison.Ordinal)
+        && !assemblyName.EndsWith(".Unit", StringComparison.Ordinal)
+        && !assemblyName.EndsWith(".Tests", StringComparison.Ordinal)
+        && !assemblyName.Contains(".Unit.", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Spine ranks (low → high). Null = not on the closed spine (still subject to Avalonia isolation).
+    /// </summary>
+    private static int? GetSpineRank(string assemblyName)
+    {
+        if (assemblyName.StartsWith("Novolis.Math.", StringComparison.Ordinal)
+            || assemblyName.Equals("Novolis.Math", StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        if (assemblyName.StartsWith("Novolis.Physics.", StringComparison.Ordinal)
+            || assemblyName.Equals("Novolis.Physics", StringComparison.Ordinal))
+        {
+            return 1;
+        }
+
+        if (assemblyName.StartsWith("Novolis.Simulation.", StringComparison.Ordinal)
+            || assemblyName.Equals("Novolis.Simulation", StringComparison.Ordinal))
+        {
+            return 2;
+        }
+
+        if (assemblyName.StartsWith("Novolis.Game.", StringComparison.Ordinal)
+            || assemblyName.Equals("Novolis.Game", StringComparison.Ordinal))
+        {
+            return 3;
+        }
+
+        if (assemblyName.StartsWith("Novolis.Avalonia.", StringComparison.Ordinal)
+            || assemblyName.Equals("Novolis.Avalonia", StringComparison.Ordinal))
+        {
+            return 4;
+        }
+
+        return null;
+    }
+
+    private static string SpineLayerName(int rank) => rank switch
+    {
+        0 => "Math",
+        1 => "Physics",
+        2 => "Simulation",
+        3 => "Gaming",
+        4 => "Avalonia",
+        _ => rank.ToString(),
+    };
+
+    private static bool IsAvaloniaAssembly(string refName) =>
+        refName.Equals("Avalonia", StringComparison.Ordinal)
+        || refName.StartsWith("Avalonia.", StringComparison.Ordinal);
+
+    private static bool IsAvaloniaLayerAssembly(string assemblyName) =>
+        assemblyName.StartsWith("Novolis.Avalonia.", StringComparison.Ordinal)
+        || assemblyName.Equals("Novolis.Avalonia", StringComparison.Ordinal);
+
     private static void AnalyzeCompilation(CompilationAnalysisContext context)
     {
         var self = context.Compilation.AssemblyName ?? string.Empty;
+        var selfRank = GetSpineRank(self);
+
         foreach (var reference in context.Compilation.ReferencedAssemblyNames)
         {
             var refName = reference.Name ?? string.Empty;
+
             if (self.StartsWith("Novolis.Raylib.", StringComparison.Ordinal)
                 && refName.StartsWith("Novolis.Simulation.", StringComparison.Ordinal))
             {
@@ -115,6 +209,31 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
                     self,
                     refName));
             }
+
+            // NOV2006: only Novolis.Avalonia.* libraries may take Avalonia UI package refs.
+            if (IsNovolisLibraryAssembly(self)
+                && !IsAvaloniaLayerAssembly(self)
+                && IsAvaloniaAssembly(refName))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    AvaloniaOutsideLayerRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
+
+            // NOV2007: closed spine — lower must not reference higher.
+            var refRank = GetSpineRank(refName);
+            if (selfRank is int s && refRank is int r && s < r)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    LayerInversionRule,
+                    Location.None,
+                    self,
+                    SpineLayerName(s),
+                    refName,
+                    SpineLayerName(r)));
+            }
         }
     }
 
@@ -129,7 +248,7 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeType(SymbolAnalysisContext context)
     {
-        if (!IsStackAssembly(context.Compilation))
+        if (!IsNumericStackAssembly(context.Compilation))
             return;
 
         if (context.Symbol is not INamedTypeSymbol type)
@@ -171,7 +290,7 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeSyntax(SyntaxNodeAnalysisContext context)
     {
-        if (!IsStackAssembly(context.Compilation))
+        if (!IsNumericStackAssembly(context.Compilation))
             return;
 
         var typeInfo = context.SemanticModel.GetTypeInfo(context.Node, context.CancellationToken);
