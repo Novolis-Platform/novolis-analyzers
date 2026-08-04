@@ -24,6 +24,10 @@ MSBuild tasks that enforce Novolis **safe licenses**: MIT and Apache-2.0 only (o
 
 Targets flow via `build` / `buildTransitive`.
 
+## Quick start
+
+Reference the package from packable library projects (or import via `Novolis.LicensingAnalyzers.props` in governance). Pack and restore run `NOV3001`–`NOV3003` against your package license and dependency SPDX allowlist.
+
 ## Options
 
 ```xml
