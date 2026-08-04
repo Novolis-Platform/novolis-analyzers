@@ -8,7 +8,7 @@
 
 # Novolis.Analyzers.StackBoundaries
 
-Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camera placement, Raylib/Simulation/rendering reference boundaries, Avalonia isolation, and closed-spine layer ranks (`NOV2001`–`NOV2007`).
+Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camera placement, Raylib/Simulation/Rendering reference boundaries, Avalonia isolation, Gaming graphics islands, and closed-spine layer ranks (`NOV2001`–`NOV2009`).
 
 | ID | Rule |
 |----|------|
@@ -19,6 +19,8 @@ Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camer
 | `NOV2005` | Raylib must not reference rendering scene packages |
 | `NOV2006` | Only `Novolis.Avalonia.*` may reference Avalonia UI assemblies |
 | `NOV2007` | Math → Physics → Simulation → Gaming → Avalonia (no upward refs) |
+| `NOV2008` | Rendering ↔ Simulation forbidden |
+| `NOV2009` | Gaming must not reference Raylib or Rendering |
 
 ## Install
 
@@ -36,6 +38,8 @@ Import via `Novolis.StackAnalyzers.props` in governance (applies to all `Novolis
 
 | Package | When to use |
 |---------|-------------|
+| `Novolis.Analyzers.Conventions` | Forbidden `desk` word; no leftover `Frank.*` |
+| `Novolis.Analyzers.Licensing` | Own + dependency MIT/Apache-2.0 license checks |
 | `Novolis.Analyzers.CodeLength` | Line-count maintainability rules |
 | `Novolis.Analyzers.AutoMapper` | AutoMapper-specific rules |
 

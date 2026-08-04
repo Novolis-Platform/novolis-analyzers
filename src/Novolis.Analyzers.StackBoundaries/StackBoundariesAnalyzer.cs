@@ -8,13 +8,14 @@ namespace Novolis.Analyzers.StackBoundaries;
 
 /// <summary>
 /// Enforces Novolis stack boundary rules: BCL numerics, no <see cref="System.Numerics.Vector2"/>,
-/// camera placement, Raylib/Simulation/rendering reference constraints, Avalonia isolation,
-/// and Math → Physics → Simulation → Gaming → Avalonia layer ranks.
+/// camera placement, Raylib/Simulation/Rendering reference constraints, Avalonia isolation,
+/// Gaming graphics islands, and Math → Physics → Simulation → Gaming → Avalonia layer ranks.
 /// </summary>
 /// <remarks>
 /// Diagnostic IDs: <c>NOV2001</c> duplicate numerics, <c>NOV2002</c> Vector2, <c>NOV2003</c> camera in Math,
 /// <c>NOV2004</c> Raylib/Simulation cross-refs, <c>NOV2005</c> Raylib rendering scene refs,
-/// <c>NOV2006</c> Avalonia refs outside Avalonia layer, <c>NOV2007</c> layer inversion.
+/// <c>NOV2006</c> Avalonia refs outside Avalonia layer, <c>NOV2007</c> layer inversion,
+/// <c>NOV2008</c> Rendering/Simulation cross-refs, <c>NOV2009</c> Gaming must not ref Raylib/Rendering.
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
@@ -79,6 +80,24 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         customTags: ["CompilationEnd"]);
 
+    private static readonly DiagnosticDescriptor RenderingSimulationRefRule = new(
+        "NOV2008",
+        "Rendering and Simulation must not reference each other",
+        "Assembly '{0}' must not reference '{1}' — wire Rendering ↔ Simulation only in apps",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
+    private static readonly DiagnosticDescriptor GamingGraphicsIslandRule = new(
+        "NOV2009",
+        "Gaming must not reference Raylib or Rendering",
+        "Assembly '{0}' must not reference '{1}' — Novolis.Game.* stays graphics-free; apps compose Raylib/Rendering",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
     [
@@ -89,6 +108,8 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         RaylibRenderingSceneRefRule,
         AvaloniaOutsideLayerRule,
         LayerInversionRule,
+        RenderingSimulationRefRule,
+        GamingGraphicsIslandRule,
     ];
 
     /// <inheritdoc />
@@ -234,8 +255,46 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
                     refName,
                     SpineLayerName(r)));
             }
+
+            // NOV2008: Rendering ↔ Simulation forbidden both ways.
+            if ((IsRenderingAssembly(self) && IsSimulationAssembly(refName))
+                || (IsSimulationAssembly(self) && IsRenderingAssembly(refName)))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    RenderingSimulationRefRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
+
+            // NOV2009: Gaming must not reference Raylib or Rendering.
+            if (IsGamingAssembly(self)
+                && (IsRaylibAssembly(refName) || IsRenderingAssembly(refName)))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    GamingGraphicsIslandRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
         }
     }
+
+    private static bool IsSimulationAssembly(string name) =>
+        name.StartsWith("Novolis.Simulation.", StringComparison.Ordinal)
+        || name.Equals("Novolis.Simulation", StringComparison.Ordinal);
+
+    private static bool IsRenderingAssembly(string name) =>
+        name.StartsWith("Novolis.Rendering.", StringComparison.Ordinal)
+        || name.Equals("Novolis.Rendering", StringComparison.Ordinal);
+
+    private static bool IsRaylibAssembly(string name) =>
+        name.StartsWith("Novolis.Raylib.", StringComparison.Ordinal)
+        || name.Equals("Novolis.Raylib", StringComparison.Ordinal);
+
+    private static bool IsGamingAssembly(string name) =>
+        name.StartsWith("Novolis.Game.", StringComparison.Ordinal)
+        || name.Equals("Novolis.Game", StringComparison.Ordinal);
 
     private static bool IsRenderingSceneAssembly(string refName) =>
         refName is "Novolis.Rendering.Scene"

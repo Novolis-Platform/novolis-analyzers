@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>Novolis.Analyzers.Licensing</PackageId>
+    <Description>MSBuild tasks that enforce Novolis safe licenses: own PackageLicenseExpression and dependency SPDX allowlist (MIT / Apache-2.0).</Description>
+    <IsPackable>true</IsPackable>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <BuildOutputTargetFolder>build</BuildOutputTargetFolder>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Build.Utilities.Core">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Build.Framework">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="build\Novolis.Analyzers.Licensing.props" Pack="true" PackagePath="build\" />
+    <Content Include="build\Novolis.Analyzers.Licensing.targets" Pack="true" PackagePath="build\" />
+    <Content Include="buildTransitive\Novolis.Analyzers.Licensing.props" Pack="true" PackagePath="buildTransitive\" />
+    <Content Include="buildTransitive\Novolis.Analyzers.Licensing.targets" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <NovolisSafeLicenseCheck Condition="'$(NovolisSafeLicenseCheck)' == ''">true</NovolisSafeLicenseCheck>
+    <NovolisSafeLicenseStrict Condition="'$(NovolisSafeLicenseStrict)' == ''">false</NovolisSafeLicenseStrict>
+  </PropertyGroup>
+</Project>

@@ -4,7 +4,7 @@
     <IsTestProject>true</IsTestProject>
     <RootNamespace>Novolis.Analyzers.Tests</RootNamespace>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <NoWarn>$(NoWarn);FRANK4010;FRANK4011;AUTO001;CS8625;NU1903</NoWarn>
+    <NoWarn>$(NoWarn);FRANK4010;FRANK4011;AUTO001;NOV2101;NOV2102;CS8625;NU1903</NoWarn>
     <EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
     <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>false</IsRoslynComponent>
@@ -12,17 +12,24 @@
   <ItemGroup>
     <PackageReference Include="AutoMapper" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="TUnit" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Novolis.Analyzers.AutoMapper\Novolis.Analyzers.AutoMapper.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.CodeLength\Novolis.Analyzers.CodeLength.csproj" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.Conventions\Novolis.Analyzers.Conventions.csproj" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.Licensing\Novolis.Analyzers.Licensing.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.StackBoundaries\Novolis.Analyzers.StackBoundaries.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.AutoMapper\Novolis.Analyzers.AutoMapper.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.CodeLength\Novolis.Analyzers.CodeLength.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.Conventions\Novolis.Analyzers.Conventions.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />

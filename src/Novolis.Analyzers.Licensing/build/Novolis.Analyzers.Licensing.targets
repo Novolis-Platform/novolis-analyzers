@@ -1,0 +1,63 @@
+<Project>
+  <PropertyGroup>
+    <_NovolisLicensingTaskAssembly>$(MSBuildThisFileDirectory)Novolis.Analyzers.Licensing.dll</_NovolisLicensingTaskAssembly>
+    <_NovolisLicensingTaskAssembly Condition="!Exists('$(_NovolisLicensingTaskAssembly)') AND Exists('$(MSBuildThisFileDirectory)netstandard2.0\Novolis.Analyzers.Licensing.dll')">$(MSBuildThisFileDirectory)netstandard2.0\Novolis.Analyzers.Licensing.dll</_NovolisLicensingTaskAssembly>
+    <!-- Sibling checkout: use the built task DLL when the package props are imported from source. -->
+    <_NovolisLicensingTaskAssembly Condition="!Exists('$(_NovolisLicensingTaskAssembly)') AND Exists('$(MSBuildThisFileDirectory)..\bin\$(Configuration)\netstandard2.0\Novolis.Analyzers.Licensing.dll')">$(MSBuildThisFileDirectory)..\bin\$(Configuration)\netstandard2.0\Novolis.Analyzers.Licensing.dll</_NovolisLicensingTaskAssembly>
+    <_NovolisLicensingTaskAssembly Condition="!Exists('$(_NovolisLicensingTaskAssembly)') AND Exists('$(MSBuildThisFileDirectory)..\bin\Debug\netstandard2.0\Novolis.Analyzers.Licensing.dll')">$(MSBuildThisFileDirectory)..\bin\Debug\netstandard2.0\Novolis.Analyzers.Licensing.dll</_NovolisLicensingTaskAssembly>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Novolis.Analyzers.Licensing.ValidateOwnPackageLicenseTask"
+             AssemblyFile="$(_NovolisLicensingTaskAssembly)"
+             Condition="Exists('$(_NovolisLicensingTaskAssembly)')" />
+  <UsingTask TaskName="Novolis.Analyzers.Licensing.ValidateDependencyLicensesTask"
+             AssemblyFile="$(_NovolisLicensingTaskAssembly)"
+             Condition="Exists('$(_NovolisLicensingTaskAssembly)')" />
+
+  <Target Name="NovolisValidateOwnPackageLicense"
+          BeforeTargets="Build;Pack"
+          Condition="'$(NovolisSafeLicenseCheck)' == 'true' AND '$(IsPackable)' == 'true' AND Exists('$(_NovolisLicensingTaskAssembly)')">
+    <ValidateOwnPackageLicenseTask
+      IsPackable="$(IsPackable)"
+      PackageLicenseExpression="$(PackageLicenseExpression)"
+      Enabled="$(NovolisSafeLicenseCheck)" />
+  </Target>
+
+  <Target Name="NovolisValidateDependencyLicenses"
+          AfterTargets="ResolvePackageAssets"
+          Condition="'$(NovolisSafeLicenseCheck)' == 'true' AND Exists('$(_NovolisLicensingTaskAssembly)')">
+    <ItemGroup>
+      <_NovolisLicensePackage Include="@(PackageDependencies)" Condition="'%(PackageDependencies.Identity)' != ''">
+        <PackageId>$([System.String]::Copy('%(PackageDependencies.Identity)').Split('/')[0])</PackageId>
+      </_NovolisLicensePackage>
+    </ItemGroup>
+
+    <!-- Prefer NuGetPackageRoot; fall back to user packages folder. -->
+    <PropertyGroup>
+      <_NovolisPackagesPath Condition="'$(NuGetPackageRoot)' != ''">$(NuGetPackageRoot)</_NovolisPackagesPath>
+      <_NovolisPackagesPath Condition="'$(_NovolisPackagesPath)' == ''">$(USERPROFILE)\.nuget\packages\</_NovolisPackagesPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_NovolisLicenseScan Include="@(PackageReference)">
+        <Version>%(PackageReference.Version)</Version>
+      </_NovolisLicenseScan>
+    </ItemGroup>
+
+    <!-- Build Id|Version list from resolved PackageReference with Version from central/resolved metadata. -->
+    <ItemGroup>
+      <_NovolisLicenseIdentity Include="@(PackageReference -> '%(Identity)|%(Version)')"
+                               Condition="'%(PackageReference.Version)' != ''" />
+      <_NovolisLicenseIdentity Include="@(PackageReference -> '%(Identity)|%(VersionOverride)')"
+                               Condition="'%(PackageReference.Version)' == '' AND '%(PackageReference.VersionOverride)' != ''" />
+    </ItemGroup>
+
+    <ValidateDependencyLicensesTask
+      Enabled="$(NovolisSafeLicenseCheck)"
+      StrictUnknown="$(NovolisSafeLicenseStrict)"
+      PackagesPath="$(_NovolisPackagesPath)"
+      Packages="@(_NovolisLicenseIdentity)"
+      ExemptPackages="@(NovolisSafeLicensePackage)"
+      Condition="'@(_NovolisLicenseIdentity)' != ''" />
+  </Target>
+</Project>

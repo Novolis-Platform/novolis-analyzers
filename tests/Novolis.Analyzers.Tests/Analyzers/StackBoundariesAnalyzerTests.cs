@@ -358,6 +358,91 @@ public sealed class StackBoundariesAnalyzerTests
         await Assert.That(diagnostics.Any(d => d.Id == "NOV2007")).IsFalse();
     }
 
+    [Test]
+    public async Task RenderingReferencingSimulation_ReportsNov2008()
+    {
+        var simRef = CSharpCompilation.Create("Novolis.Simulation.Core")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Rendering.Scene { public static class S { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Rendering.Scene",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), simRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2008")).IsTrue();
+    }
+
+    [Test]
+    public async Task SimulationReferencingRendering_ReportsNov2008()
+    {
+        var renderingRef = CSharpCompilation.Create("Novolis.Rendering.Scene")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Simulation.Core { public static class S { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Simulation.Core",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), renderingRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2008")).IsTrue();
+    }
+
+    [Test]
+    public async Task GameReferencingRaylib_ReportsNov2009()
+    {
+        var raylibRef = CSharpCompilation.Create("Novolis.Raylib.Game")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Game.Identity { public static class Id { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Game.Identity",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), raylibRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2009")).IsTrue();
+    }
+
+    [Test]
+    public async Task GameReferencingRendering_ReportsNov2009()
+    {
+        var renderingRef = CSharpCompilation.Create("Novolis.Rendering.Scene")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Game.Humanoid { public static class H { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Game.Humanoid",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), renderingRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2009")).IsTrue();
+    }
+
+    [Test]
+    public async Task GameReferencingSimulation_DoesNotReportNov2009()
+    {
+        var simRef = CSharpCompilation.Create("Novolis.Simulation.Humanoid")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Game.Humanoid { public static class H { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Game.Humanoid",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), simRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2009")).IsFalse();
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeMathAssemblyAsync(string code)
     {
         var tree = CSharpSyntaxTree.ParseText(code);

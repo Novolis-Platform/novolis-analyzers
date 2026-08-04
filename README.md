@@ -40,6 +40,8 @@
 |---------|---------|----------------|
 | `Novolis.Analyzers.AutoMapper` | `dotnet add package Novolis.Analyzers.AutoMapper` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.AutoMapper/README.md) |
 | `Novolis.Analyzers.CodeLength` | `dotnet add package Novolis.Analyzers.CodeLength` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.CodeLength/README.md) |
+| `Novolis.Analyzers.Conventions` | `dotnet add package Novolis.Analyzers.Conventions` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.Conventions/README.md) |
+| `Novolis.Analyzers.Licensing` | `dotnet add package Novolis.Analyzers.Licensing` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.Licensing/README.md) |
 | `Novolis.Analyzers.StackBoundaries` | `dotnet add package Novolis.Analyzers.StackBoundaries` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.StackBoundaries/README.md) |
 
 For NuGet.org and Visual Studio, the **embedded** README.md inside each package is authoritative.
@@ -47,17 +49,19 @@ For NuGet.org and Visual Studio, the **embedded** README.md inside each package 
 <!-- novolis-package-index:end -->
 # novolis-analyzers
 
-Roslyn analyzers enforcing Novolis platform conventions (stack boundaries, maintainability, AutoMapper usage).
+Roslyn analyzers enforcing Novolis platform conventions (stack boundaries, naming, licensing, maintainability, AutoMapper usage).
 
 ## Packages
 
 | Package | Description |
 |---------|-------------|
-| [Novolis.Analyzers.StackBoundaries](src/Novolis.Analyzers.StackBoundaries/README.md) | Math/Physics/Simulation/Raylib reference rules (`NOV2001`–`NOV2005`) |
+| [Novolis.Analyzers.StackBoundaries](src/Novolis.Analyzers.StackBoundaries/README.md) | Stack / Avalonia / island rules (`NOV2001`–`NOV2009`) |
+| [Novolis.Analyzers.Conventions](src/Novolis.Analyzers.Conventions/README.md) | Forbidden `desk`; no leftover `Frank.*` (`NOV2101`–`NOV2102`) |
+| [Novolis.Analyzers.Licensing](src/Novolis.Analyzers.Licensing/README.md) | Own + dependency MIT/Apache-2.0 checks (`NOV3001`–`NOV3003`) |
 | [Novolis.Analyzers.CodeLength](src/Novolis.Analyzers.CodeLength/README.md) | Line-count maintainability rules |
 | [Novolis.Analyzers.AutoMapper](src/Novolis.Analyzers.AutoMapper/README.md) | AutoMapper-specific diagnostics |
 
-Import via `Novolis.StackAnalyzers.props` from **novolis-governance**, or reference packages directly.
+Import via `Novolis.StackAnalyzers.props` from **novolis-governance** (StackBoundaries + Conventions), or reference packages directly. Add `Novolis.Analyzers.Licensing` as a `PackageReference` for license checks.
 
 ## Install
 

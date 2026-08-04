@@ -1,0 +1,4 @@
+<Project>
+  <Import Project="..\build\Novolis.Analyzers.Licensing.props"
+          Condition="Exists('..\build\Novolis.Analyzers.Licensing.props')" />
+</Project>
