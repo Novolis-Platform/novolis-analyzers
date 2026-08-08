@@ -26,12 +26,7 @@ public class MethodCodeLineAnalyzer : DiagnosticAnalyzer
 
     private void MethodSymbolAction(SymbolAnalysisContext obj)
     {
-        if (obj.Symbol is not IMethodSymbol methodSymbol)
-            return;
-
-        if (methodSymbol.DeclaringSyntaxReferences.Length == 0)
-            return;
-
+        var methodSymbol = (IMethodSymbol)obj.Symbol;
         var syntaxTree = methodSymbol.DeclaringSyntaxReferences[0].SyntaxTree;
 
         if (syntaxTree.TryGetText(out var resultText) && resultText.Lines.Count(line => line.Text!.ToString().Contains($";")) > CodeLengthSettings.MethodMaxLines)

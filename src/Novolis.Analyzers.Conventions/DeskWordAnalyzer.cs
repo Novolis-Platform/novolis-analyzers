@@ -82,16 +82,10 @@ public sealed class DeskWordAnalyzer : DiagnosticAnalyzer
 
     private static void ReportIfDeskIdentifier(SymbolAnalysisContext context, ISymbol symbol)
     {
-        if (symbol.IsImplicitlyDeclared)
+        if (symbol.IsImplicitlyDeclared || !IdentifierContainsDeskSegment(symbol.Name))
             return;
 
-        if (!IdentifierContainsDeskSegment(symbol.Name))
-            return;
-
-        var location = symbol.Locations.FirstOrDefault(l => l.IsInSource);
-        if (location is null)
-            return;
-
+        var location = symbol.Locations.First(l => l.IsInSource);
         context.ReportDiagnostic(Diagnostic.Create(IdentifierRule, location, symbol.Name));
     }
 

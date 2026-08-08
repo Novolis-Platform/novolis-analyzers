@@ -181,8 +181,11 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         2 => "Simulation",
         3 => "Gaming",
         4 => "Avalonia",
-        _ => rank.ToString(),
+        _ => UnknownSpineLayer(rank),
     };
+
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    private static string UnknownSpineLayer(int rank) => rank.ToString();
 
     private static bool IsAvaloniaAssembly(string refName) =>
         refName.Equals("Avalonia", StringComparison.Ordinal)

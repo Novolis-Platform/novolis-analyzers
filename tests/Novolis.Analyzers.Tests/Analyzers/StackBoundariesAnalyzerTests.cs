@@ -443,6 +443,131 @@ public sealed class StackBoundariesAnalyzerTests
         await Assert.That(diagnostics.Any(d => d.Id == "NOV2009")).IsFalse();
     }
 
+    [Test]
+    public async Task PhysicsReferencingGame_ReportsNov2007_WithPhysicsLabel()
+    {
+        var gameRef = CSharpCompilation.Create("Novolis.Game.Identity")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Physics.Core { public static class P { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Physics.Core",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), gameRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        var hit = diagnostics.Single(d => d.Id == "NOV2007");
+        await Assert.That(hit.GetMessage()).Contains("Physics");
+    }
+
+    [Test]
+    public async Task MathReferencingAvalonia_ReportsNov2007_WithAvaloniaLabel()
+    {
+        var avaloniaRef = CSharpCompilation.Create("Novolis.Avalonia.Controls")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Math.Geometry { public static class G { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Math.Geometry",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), avaloniaRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        var hit = diagnostics.Single(d => d.Id == "NOV2007");
+        await Assert.That(hit.GetMessage()).Contains("Avalonia");
+    }
+
+    [Test]
+    public async Task RaylibReferencingRenderingMaterials_ReportsNov2005()
+    {
+        var materialsRef = CSharpCompilation.Create("Novolis.Rendering.Materials")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Raylib.Runtime { public static class Shell { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Raylib.Runtime",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), materialsRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2005")).IsTrue();
+    }
+
+    [Test]
+    public async Task DuplicateNumericsTypeNames_ReportNov2001()
+    {
+        foreach (var typeName in new[] { "Vector3D", "Quaterniond", "QuaternionD", "Matrix4x4d", "Vector2D" })
+        {
+            var code = $$"""
+                          namespace Novolis.Math.Geometry;
+
+                          public struct {{typeName}}
+                          {
+                              public double X;
+                          }
+                          """;
+            var diagnostics = await AnalyzeMathAssemblyAsync(code);
+            await Assert.That(diagnostics.Any(d => d.Id == "NOV2001")).IsTrue();
+        }
+    }
+
+    [Test]
+    public async Task CameraOutsideMath_DoesNotReportNov2003()
+    {
+        const string code = """
+                              namespace Novolis.Simulation.View;
+
+                              public sealed class Camera
+                              {
+                              }
+                              """;
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Simulation.View",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2003")).IsFalse();
+    }
+
+    [Test]
+    public async Task TestAssembly_MayReferenceAvalonia_WithoutNov2006()
+    {
+        var avaloniaRef = CSharpCompilation.Create("Avalonia")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Simulation.Core { public static class Sim { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Simulation.Core.Tests",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), avaloniaRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2006")).IsFalse();
+    }
+
+    [Test]
+    public async Task ExactSpineAssemblyNames_EnforceBoundaries()
+    {
+        var simRef = CSharpCompilation.Create("Novolis.Simulation")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Math { public static class G { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Math",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), simRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2007")).IsTrue();
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeMathAssemblyAsync(string code)
     {
         var tree = CSharpSyntaxTree.ParseText(code);

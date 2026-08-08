@@ -7,6 +7,7 @@ using TUnit.Core;
 
 namespace Novolis.Analyzers.Tests.Analyzers;
 
+[NotInParallel]
 public class CodeLengthAnalyzerTests
 {
     [Test]

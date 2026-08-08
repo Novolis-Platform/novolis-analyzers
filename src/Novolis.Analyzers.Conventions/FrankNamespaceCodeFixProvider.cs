@@ -31,11 +31,7 @@ public sealed class FrankNamespaceCodeFixProvider : CodeFixProvider
         var diagnostic = context.Diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        NameSyntax? nameSyntax = node switch
-        {
-            NameSyntax name => name,
-            _ => node.AncestorsAndSelf().OfType<NameSyntax>().FirstOrDefault(),
-        };
+        NameSyntax? nameSyntax = node as NameSyntax ?? FindNameAncestor(node);
 
         if (nameSyntax is null)
             return;
@@ -51,6 +47,10 @@ public sealed class FrankNamespaceCodeFixProvider : CodeFixProvider
                 equivalenceKey: nameof(FrankNamespaceCodeFixProvider)),
             diagnostic);
     }
+
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    private static NameSyntax? FindNameAncestor(SyntaxNode node) =>
+        node.AncestorsAndSelf().OfType<NameSyntax>().FirstOrDefault();
 
     private static async Task<Document> ReplaceFrankPrefixAsync(
         Document document,

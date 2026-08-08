@@ -26,12 +26,7 @@ public class ClassCodeLineAnalyzer : DiagnosticAnalyzer
 
 	private void TypeSymbolAction(SymbolAnalysisContext obj)
 	{
-		if (obj.Symbol is not INamedTypeSymbol typeSymbol)
-			return;
-
-		if (typeSymbol.DeclaringSyntaxReferences.Length == 0)
-			return;
-
+		var typeSymbol = (INamedTypeSymbol)obj.Symbol;
 		var syntaxTree = typeSymbol.DeclaringSyntaxReferences[0].SyntaxTree;
 
 		if (syntaxTree.TryGetText(out var resultText) && resultText.Lines.Count > CodeLengthSettings.ClassMaxLines)
