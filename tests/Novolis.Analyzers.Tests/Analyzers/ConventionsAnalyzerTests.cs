@@ -422,6 +422,37 @@ public sealed class ConventionsAnalyzerTests
         await Assert.That(fixedText.Contains("Frank.Legacy", StringComparison.Ordinal)).IsFalse();
     }
 
+    [Test]
+    public async Task LegacyProjectWorkspaceType_ReportsNov2103()
+    {
+        const string code = """
+                            namespace Novolis.Workspaces
+                            {
+                                public interface IWorkspace { }
+                            }
+
+                            namespace Novolis.Sample
+                            {
+                                public sealed class Consumer
+                                {
+                                    public Novolis.Workspaces.IWorkspace Value { get; } = null!;
+                                }
+                            }
+                            """;
+
+        var tree = CSharpSyntaxTree.ParseText(code);
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Sample",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]);
+
+        var diagnostics = await compilation
+            .WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(new ProjectWorkspaceMigrationAnalyzer()))
+            .GetAnalyzerDiagnosticsAsync();
+
+        await Assert.That(diagnostics.Any(diagnostic => diagnostic.Id == "NOV2103")).IsTrue();
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeAsync(string assemblyName, string code)
     {
         var tree = CSharpSyntaxTree.ParseText(code);
