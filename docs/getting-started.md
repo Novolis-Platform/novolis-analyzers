@@ -4,7 +4,7 @@
 
 | Package | Use |
 |---------|-----|
-| `Novolis.Analyzers.StackBoundaries` | Layer / Avalonia / island rules (`NOV2001`–`NOV2009`) |
+| `Novolis.Analyzers.StackBoundaries` | Layer / Avalonia / MAUI / island rules (`NOV2001`–`NOV2011`) |
 | `Novolis.Analyzers.Conventions` | Forbidden `desk`; no `Frank.*` leftovers (`NOV2101`–`NOV2102`) |
 | `Novolis.Analyzers.Licensing` | MIT / Apache-2.0 own + dependency license checks (`NOV3001`–`NOV3003`) |
 | `Novolis.Analyzers.CodeLength` | Method/class line limits |

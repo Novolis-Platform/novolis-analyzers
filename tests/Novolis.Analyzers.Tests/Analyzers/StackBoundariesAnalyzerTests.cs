@@ -568,6 +568,91 @@ public sealed class StackBoundariesAnalyzerTests
         await Assert.That(diagnostics.Any(d => d.Id == "NOV2007")).IsTrue();
     }
 
+    [Test]
+    public async Task MarkupReferencingMaui_ReportsNov2010()
+    {
+        var mauiRef = CSharpCompilation.Create("Microsoft.Maui.Controls")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Markup.Markdown { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Markup.Markdown",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), mauiRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2010")).IsTrue();
+    }
+
+    [Test]
+    public async Task MauiLayerReferencingMaui_DoesNotReportNov2010()
+    {
+        var mauiRef = CSharpCompilation.Create("Microsoft.Maui.Controls")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Maui.Markdown { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Maui.Markdown",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), mauiRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2010")).IsFalse();
+    }
+
+    [Test]
+    public async Task VoiceMauiAdapter_DoesNotReportNov2010()
+    {
+        var mauiRef = CSharpCompilation.Create("Microsoft.Maui.Controls")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Audio.Voice.Platform.Maui { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Audio.Voice.Platform.Maui",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), mauiRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2010")).IsFalse();
+    }
+
+    [Test]
+    public async Task MauiReferencingAvalonia_ReportsNov2011()
+    {
+        var avaloniaRef = CSharpCompilation.Create("Avalonia")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Maui.Markdown { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Maui.Markdown",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), avaloniaRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2011")).IsTrue();
+    }
+
+    [Test]
+    public async Task AvaloniaReferencingMaui_ReportsNov2011()
+    {
+        var mauiRef = CSharpCompilation.Create("Microsoft.Maui.Controls")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Avalonia.Markdown { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Avalonia.Markdown",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), mauiRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2011")).IsTrue();
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeMathAssemblyAsync(string code)
     {
         var tree = CSharpSyntaxTree.ParseText(code);

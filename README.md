@@ -58,7 +58,7 @@ Roslyn analyzers enforcing Novolis platform conventions (stack boundaries, namin
 
 | Package | Description |
 |---------|-------------|
-| [Novolis.Analyzers.StackBoundaries](src/Novolis.Analyzers.StackBoundaries/README.md) | Stack / Avalonia / island rules (`NOV2001`–`NOV2009`) |
+| [Novolis.Analyzers.StackBoundaries](src/Novolis.Analyzers.StackBoundaries/README.md) | Stack / Avalonia / MAUI / island rules (`NOV2001`–`NOV2011`) |
 | [Novolis.Analyzers.Conventions](src/Novolis.Analyzers.Conventions/README.md) | Forbidden `desk`; no leftover `Frank.*` (`NOV2101`–`NOV2102`) |
 | [Novolis.Analyzers.Licensing](src/Novolis.Analyzers.Licensing/README.md) | Own + dependency MIT/Apache-2.0 checks (`NOV3001`–`NOV3003`) |
 | [Novolis.Analyzers.CodeLength](src/Novolis.Analyzers.CodeLength/README.md) | Line-count maintainability rules |

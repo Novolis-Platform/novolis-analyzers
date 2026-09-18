@@ -8,14 +8,15 @@ namespace Novolis.Analyzers.StackBoundaries;
 
 /// <summary>
 /// Enforces Novolis stack boundary rules: BCL numerics, no <see cref="System.Numerics.Vector2"/>,
-/// camera placement, Raylib/Simulation/Rendering reference constraints, Avalonia isolation,
+/// camera placement, Raylib/Simulation/Rendering reference constraints, Avalonia/MAUI isolation,
 /// Gaming graphics islands, and Math → Physics → Simulation → Gaming → Avalonia layer ranks.
 /// </summary>
 /// <remarks>
 /// Diagnostic IDs: <c>NOV2001</c> duplicate numerics, <c>NOV2002</c> Vector2, <c>NOV2003</c> camera in Math,
 /// <c>NOV2004</c> Raylib/Simulation cross-refs, <c>NOV2005</c> Raylib rendering scene refs,
 /// <c>NOV2006</c> Avalonia refs outside Avalonia layer, <c>NOV2007</c> layer inversion,
-/// <c>NOV2008</c> Rendering/Simulation cross-refs, <c>NOV2009</c> Gaming must not ref Raylib/Rendering.
+/// <c>NOV2008</c> Rendering/Simulation cross-refs, <c>NOV2009</c> Gaming must not ref Raylib/Rendering,
+/// <c>NOV2010</c> MAUI refs outside MAUI layer, <c>NOV2011</c> MAUI ↔ Avalonia island.
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
@@ -98,6 +99,24 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         customTags: ["CompilationEnd"]);
 
+    private static readonly DiagnosticDescriptor MauiOutsideLayerRule = new(
+        "NOV2010",
+        "Only Novolis.Maui.* libraries may depend on MAUI",
+        "Assembly '{0}' must not reference '{1}' — Microsoft.Maui.* packages are reserved for Novolis.Maui.* (apps compose MAUI at the product layer)",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
+    private static readonly DiagnosticDescriptor MauiAvaloniaIslandRule = new(
+        "NOV2011",
+        "MAUI and Avalonia must not reference each other",
+        "Assembly '{0}' must not reference '{1}' — wire MAUI ↔ Avalonia only in apps",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
     [
@@ -110,6 +129,8 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         LayerInversionRule,
         RenderingSimulationRefRule,
         GamingGraphicsIslandRule,
+        MauiOutsideLayerRule,
+        MauiAvaloniaIslandRule,
     ];
 
     /// <inheritdoc />
@@ -195,6 +216,17 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         assemblyName.StartsWith("Novolis.Avalonia.", StringComparison.Ordinal)
         || assemblyName.Equals("Novolis.Avalonia", StringComparison.Ordinal);
 
+    private static bool IsMauiAssembly(string refName) =>
+        refName.Equals("Microsoft.Maui", StringComparison.Ordinal)
+        || refName.StartsWith("Microsoft.Maui.", StringComparison.Ordinal);
+
+    private static bool IsMauiLayerAssembly(string assemblyName) =>
+        assemblyName.StartsWith("Novolis.Maui.", StringComparison.Ordinal)
+        || assemblyName.Equals("Novolis.Maui", StringComparison.Ordinal);
+
+    private static bool IsGrandfatheredMauiAdapter(string assemblyName) =>
+        assemblyName.Equals("Novolis.Audio.Voice.Platform.Maui", StringComparison.Ordinal);
+
     private static void AnalyzeCompilation(CompilationAnalysisContext context)
     {
         var self = context.Compilation.AssemblyName ?? string.Empty;
@@ -276,6 +308,30 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     GamingGraphicsIslandRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
+
+            // NOV2010: only Novolis.Maui.* libraries may take Microsoft.Maui.* refs.
+            if (IsNovolisLibraryAssembly(self)
+                && !IsMauiLayerAssembly(self)
+                && !IsGrandfatheredMauiAdapter(self)
+                && IsMauiAssembly(refName))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    MauiOutsideLayerRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
+
+            // NOV2011: MAUI ↔ Avalonia forbidden both ways.
+            if ((IsMauiLayerAssembly(self) && (IsAvaloniaAssembly(refName) || IsAvaloniaLayerAssembly(refName)))
+                || (IsAvaloniaLayerAssembly(self) && (IsMauiAssembly(refName) || IsMauiLayerAssembly(refName))))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    MauiAvaloniaIslandRule,
                     Location.None,
                     self,
                     refName));

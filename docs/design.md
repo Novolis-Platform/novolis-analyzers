@@ -4,7 +4,7 @@ Diagnostic ID ranges and package ownership:
 
 | Range | Package | Kind |
 |-------|---------|------|
-| `NOV2001`–`NOV2009` | `Novolis.Analyzers.StackBoundaries` | Roslyn — stack / island / Avalonia |
+| `NOV2001`–`NOV2011` | `Novolis.Analyzers.StackBoundaries` | Roslyn — stack / island / Avalonia / MAUI |
 | `NOV2101`–`NOV2102` | `Novolis.Analyzers.Conventions` | Roslyn — naming conventions |
 | `NOV3001`–`NOV3003` | `Novolis.Analyzers.Licensing` | MSBuild tasks — safe licenses |
 | `FRANK4010`–`FRANK4011` | `Novolis.Analyzers.CodeLength` | Roslyn — line counts (legacy IDs) |
@@ -23,6 +23,8 @@ Diagnostic ID ranges and package ownership:
 | `NOV2007` | Math → Physics → Simulation → Gaming → Avalonia (no upward refs) |
 | `NOV2008` | Rendering ↔ Simulation forbidden |
 | `NOV2009` | Gaming must not reference Raylib or Rendering |
+| `NOV2010` | Only `Novolis.Maui.*` may reference Microsoft.Maui assemblies |
+| `NOV2011` | MAUI ↔ Avalonia forbidden |
 
 Local wiring: `novolis-governance/build/Novolis.StackAnalyzers.props` (also loads Conventions).
 
