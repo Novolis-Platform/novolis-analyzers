@@ -4,6 +4,7 @@
 
 | Package | Use |
 |---------|-----|
+| `Novolis.Analyzers.OneTypePerFile` | One top-level type per file (`NOV2201`), fixer at document / project / solution |
 | `Novolis.Analyzers.StackBoundaries` | Layer / Avalonia / MAUI / island rules (`NOV2001`–`NOV2011`) |
 | `Novolis.Analyzers.Conventions` | Forbidden `desk`; no `Frank.*` leftovers (`NOV2101`–`NOV2102`) |
 | `Novolis.Analyzers.Licensing` | MIT / Apache-2.0 own + dependency license checks (`NOV3001`–`NOV3003`) |
@@ -19,7 +20,7 @@ When `novolis-analyzers` is checked out beside consumers, import:
         Condition="Exists('..\novolis-governance\build\Novolis.StackAnalyzers.props')" />
 ```
 
-That wires **StackBoundaries** and **Conventions** as analyzer `ProjectReference`s for `Novolis.*` libraries.
+That wires **StackBoundaries** and **Conventions** as analyzer `ProjectReference`s for `Novolis.*` libraries, and **OneTypePerFile** (`NOV2201`) for every project. Repos that do not import the stack props import `Novolis.OneTypePerFile.props` directly.
 
 For license checks (after GPR publish):
 

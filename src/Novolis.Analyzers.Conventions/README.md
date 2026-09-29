@@ -31,6 +31,7 @@ Import via `Novolis.StackAnalyzers.props` in governance when the analyzers repo 
 
 | Package | When to use |
 |---------|-------------|
+| `Novolis.Analyzers.OneTypePerFile` | One top-level type per file |
 | `Novolis.Analyzers.StackBoundaries` | Layer / Avalonia / island rules |
 | `Novolis.Analyzers.Licensing` | MIT / Apache-2.0 license checks |
 

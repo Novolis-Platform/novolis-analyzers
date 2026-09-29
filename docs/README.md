@@ -20,6 +20,7 @@ Published docs: [https://novolis-platform.github.io/.github/novolis-analyzers/](
 | `Novolis.Analyzers.CodeLength` |
 | `Novolis.Analyzers.Conventions` |
 | `Novolis.Analyzers.Licensing` |
+| `Novolis.Analyzers.OneTypePerFile` |
 | `Novolis.Analyzers.StackBoundaries` |
 
 ## More

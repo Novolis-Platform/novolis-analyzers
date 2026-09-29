@@ -4,6 +4,7 @@
     <Project Path="src/Novolis.Analyzers.CodeLength/Novolis.Analyzers.CodeLength.csproj" />
     <Project Path="src/Novolis.Analyzers.Conventions/Novolis.Analyzers.Conventions.csproj" />
     <Project Path="src/Novolis.Analyzers.Licensing/Novolis.Analyzers.Licensing.csproj" />
+    <Project Path="src/Novolis.Analyzers.OneTypePerFile/Novolis.Analyzers.OneTypePerFile.csproj" />
     <Project Path="src/Novolis.Analyzers.StackBoundaries/Novolis.Analyzers.StackBoundaries.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -6,6 +6,7 @@ Diagnostic ID ranges and package ownership:
 |-------|---------|------|
 | `NOV2001`–`NOV2011` | `Novolis.Analyzers.StackBoundaries` | Roslyn — stack / island / Avalonia / MAUI |
 | `NOV2101`–`NOV2102` | `Novolis.Analyzers.Conventions` | Roslyn — naming conventions |
+| `NOV2201` | `Novolis.Analyzers.OneTypePerFile` | Roslyn — one top-level type per file, with fixer |
 | `NOV3001`–`NOV3003` | `Novolis.Analyzers.Licensing` | MSBuild tasks — safe licenses |
 | `FRANK4010`–`FRANK4011` | `Novolis.Analyzers.CodeLength` | Roslyn — line counts (legacy IDs) |
 | `AUTO001` | `Novolis.Analyzers.AutoMapper` | Roslyn + fixer (report path currently inactive) |
@@ -26,7 +27,15 @@ Diagnostic ID ranges and package ownership:
 | `NOV2010` | Only `Novolis.Maui.*` may reference Microsoft.Maui assemblies |
 | `NOV2011` | MAUI ↔ Avalonia forbidden |
 
-Local wiring: `novolis-governance/build/Novolis.StackAnalyzers.props` (also loads Conventions).
+Local wiring: `novolis-governance/build/Novolis.StackAnalyzers.props` (also loads Conventions and OneTypePerFile).
+
+## OneTypePerFile
+
+| ID | Rule | Fixer |
+|----|------|-------|
+| `NOV2201` | More than one top-level type in a source file. Nested types stay with their parent. Partials of the same type count as one. The type whose name matches the file stays; otherwise the first type stays. | Yes — move each extra type to `{TypeName}.cs`. Fix All covers document, project, and solution. |
+
+Warning severity. `Novolis.OneTypePerFile.props` adds `NOV2201` to `WarningsNotAsErrors`. Opt out: `NovolisOneTypePerFile=false`.
 
 ## Conventions
 
