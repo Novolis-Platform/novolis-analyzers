@@ -8,7 +8,6 @@ Published docs: [https://novolis-platform.github.io/.github/novolis-analyzers/](
 
 ## Packages
 
-- `Novolis.Analyzers.AutoMapper`
 - `Novolis.Analyzers.CodeLength`
 - `Novolis.Analyzers.Conventions`
 - `Novolis.Analyzers.Licensing`

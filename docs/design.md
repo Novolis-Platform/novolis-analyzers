@@ -9,7 +9,6 @@ Diagnostic ID ranges and package ownership:
 | `NOV2201` | `Novolis.Analyzers.OneTypePerFile` | Roslyn — one top-level type per file, with fixer |
 | `NOV3001`–`NOV3003` | `Novolis.Analyzers.Licensing` | MSBuild tasks — safe licenses |
 | `FRANK4010`–`FRANK4011` | `Novolis.Analyzers.CodeLength` | Roslyn — line counts (legacy IDs) |
-| `AUTO001` | `Novolis.Analyzers.AutoMapper` | Roslyn + fixer (report path currently inactive) |
 
 ## StackBoundaries
 

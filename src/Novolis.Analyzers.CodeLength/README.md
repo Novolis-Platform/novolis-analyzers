@@ -34,7 +34,6 @@ Adjust thresholds at runtime via `CodeLengthSettings.ClassMaxLines` and `CodeLen
 | Package | When to use |
 |---------|-------------|
 | `Novolis.Analyzers.StackBoundaries` | Stack layering and numerics rules |
-| `Novolis.Analyzers.AutoMapper` | AutoMapper `Map<>` diagnostics |
 
 ## More documentation
 

@@ -1,6 +1,6 @@
 # novolis-analyzers documentation
 
-Roslyn analyzers for stack boundaries, AutoMapper, and code-length discipline.
+Roslyn analyzers for stack boundaries and code-length discipline.
 
 Published docs: [https://novolis-platform.github.io/.github/novolis-analyzers/](https://novolis-platform.github.io/.github/novolis-analyzers/)
 
@@ -16,7 +16,6 @@ Published docs: [https://novolis-platform.github.io/.github/novolis-analyzers/](
 
 | Package |
 | --- |
-| `Novolis.Analyzers.AutoMapper` |
 | `Novolis.Analyzers.CodeLength` |
 | `Novolis.Analyzers.Conventions` |
 | `Novolis.Analyzers.Licensing` |

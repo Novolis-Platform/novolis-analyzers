@@ -11,7 +11,7 @@
 
 <p align="center">
   <strong>Roslyn that enforces the platform</strong><br/>
-  Roslyn analyzers for stack boundaries, AutoMapper, and code-length discipline.
+  Roslyn analyzers for stack boundaries and code-length discipline.
 </p>
 
 <p align="center">
@@ -41,7 +41,6 @@
 
 | Package | Install | Package README |
 |---------|---------|----------------|
-| `Novolis.Analyzers.AutoMapper` | `dotnet add package Novolis.Analyzers.AutoMapper` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.AutoMapper/README.md) |
 | `Novolis.Analyzers.CodeLength` | `dotnet add package Novolis.Analyzers.CodeLength` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.CodeLength/README.md) |
 | `Novolis.Analyzers.Conventions` | `dotnet add package Novolis.Analyzers.Conventions` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.Conventions/README.md) |
 | `Novolis.Analyzers.Licensing` | `dotnet add package Novolis.Analyzers.Licensing` | [README](https://github.com/Novolis-Platform/novolis-analyzers/blob/main/src/Novolis.Analyzers.Licensing/README.md) |
@@ -53,7 +52,7 @@ For NuGet.org and Visual Studio, the **embedded** README.md inside each package 
 <!-- novolis-package-index:end -->
 # novolis-analyzers
 
-Roslyn analyzers enforcing Novolis platform conventions (stack boundaries, naming, licensing, maintainability, AutoMapper usage).
+Roslyn analyzers enforcing Novolis platform conventions (stack boundaries, naming, licensing, and maintainability).
 
 ## Packages
 
@@ -64,7 +63,6 @@ Roslyn analyzers enforcing Novolis platform conventions (stack boundaries, namin
 | [Novolis.Analyzers.OneTypePerFile](src/Novolis.Analyzers.OneTypePerFile/README.md) | One top-level type per file (`NOV2201`) with a document / project / solution fixer |
 | [Novolis.Analyzers.Licensing](src/Novolis.Analyzers.Licensing/README.md) | Own + dependency MIT/Apache-2.0 checks (`NOV3001`–`NOV3003`) |
 | [Novolis.Analyzers.CodeLength](src/Novolis.Analyzers.CodeLength/README.md) | Line-count maintainability rules |
-| [Novolis.Analyzers.AutoMapper](src/Novolis.Analyzers.AutoMapper/README.md) | AutoMapper-specific diagnostics |
 
 Import via `Novolis.StackAnalyzers.props` from **novolis-governance** (StackBoundaries + Conventions + OneTypePerFile), or import `Novolis.OneTypePerFile.props` on its own. Add `Novolis.Analyzers.Licensing` as a `PackageReference` for license checks.
 

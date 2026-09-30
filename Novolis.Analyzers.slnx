@@ -1,6 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Novolis.Analyzers.AutoMapper/Novolis.Analyzers.AutoMapper.csproj" />
     <Project Path="src/Novolis.Analyzers.CodeLength/Novolis.Analyzers.CodeLength.csproj" />
     <Project Path="src/Novolis.Analyzers.Conventions/Novolis.Analyzers.Conventions.csproj" />
     <Project Path="src/Novolis.Analyzers.Licensing/Novolis.Analyzers.Licensing.csproj" />

@@ -43,7 +43,6 @@ Import via `Novolis.StackAnalyzers.props` in governance (applies to all `Novolis
 | `Novolis.Analyzers.Conventions` | Forbidden `desk` word; no leftover `Frank.*` |
 | `Novolis.Analyzers.Licensing` | Own + dependency MIT/Apache-2.0 license checks |
 | `Novolis.Analyzers.CodeLength` | Line-count maintainability rules |
-| `Novolis.Analyzers.AutoMapper` | AutoMapper-specific rules |
 
 ## More documentation
 
