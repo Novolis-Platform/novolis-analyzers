@@ -653,6 +653,74 @@ public sealed class StackBoundariesAnalyzerTests
         await Assert.That(diagnostics.Any(d => d.Id == "NOV2011")).IsTrue();
     }
 
+    [Test]
+    public async Task SimulationReferencingBlazor_ReportsNov2012()
+    {
+        var blazorRef = CSharpCompilation.Create("Microsoft.AspNetCore.Components")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Simulation.Core { public static class Sim { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Simulation.Core",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), blazorRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2012")).IsTrue();
+    }
+
+    [Test]
+    public async Task BlazorLayerReferencingBlazor_DoesNotReportNov2012()
+    {
+        var blazorRef = CSharpCompilation.Create("Microsoft.AspNetCore.Components.Web")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Blazor.Mermaid { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Blazor.Mermaid",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), blazorRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2012")).IsFalse();
+    }
+
+    [Test]
+    public async Task BlazorLayerReferencingAvalonia_ReportsNov2013()
+    {
+        var avaloniaRef = CSharpCompilation.Create("Avalonia")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Blazor.Mermaid { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Blazor.Mermaid",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), avaloniaRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2013")).IsTrue();
+    }
+
+    [Test]
+    public async Task BlazorLayerReferencingMaui_ReportsNov2013()
+    {
+        var mauiRef = CSharpCompilation.Create("Microsoft.Maui.Controls")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Blazor.Mermaid { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Blazor.Mermaid",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), mauiRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2013")).IsTrue();
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeMathAssemblyAsync(string code)
     {
         var tree = CSharpSyntaxTree.ParseText(code);

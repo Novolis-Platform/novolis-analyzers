@@ -6,7 +6,7 @@
 
 # Novolis.Analyzers.StackBoundaries
 
-Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camera placement, Raylib/Simulation/Rendering reference boundaries, Avalonia/MAUI isolation, Gaming graphics islands, and closed-spine layer ranks (`NOV2001`–`NOV2011`).
+Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camera placement, Raylib/Simulation/Rendering reference boundaries, Avalonia/MAUI/Blazor isolation, Gaming graphics islands, and closed-spine layer ranks (`NOV2001`–`NOV2013`).
 
 | ID | Rule |
 |----|------|
@@ -21,6 +21,8 @@ Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camer
 | `NOV2009` | Gaming must not reference Raylib or Rendering |
 | `NOV2010` | Only `Novolis.Maui.*` may reference Microsoft.Maui assemblies (Voice.Platform.Maui grandfathered) |
 | `NOV2011` | MAUI ↔ Avalonia forbidden |
+| `NOV2012` | Only `Novolis.Blazor.*` may reference ASP.NET Core Blazor assemblies |
+| `NOV2013` | Blazor ↔ Avalonia/MAUI forbidden |
 
 ## Install
 

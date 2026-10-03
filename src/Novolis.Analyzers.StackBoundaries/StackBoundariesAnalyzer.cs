@@ -8,7 +8,7 @@ namespace Novolis.Analyzers.StackBoundaries;
 
 /// <summary>
 /// Enforces Novolis stack boundary rules: BCL numerics, no <see cref="System.Numerics.Vector2"/>,
-/// camera placement, Raylib/Simulation/Rendering reference constraints, Avalonia/MAUI isolation,
+/// camera placement, Raylib/Simulation/Rendering reference constraints, Avalonia/MAUI/Blazor isolation,
 /// Gaming graphics islands, and Math → Physics → Simulation → Gaming → Avalonia layer ranks.
 /// </summary>
 /// <remarks>
@@ -16,7 +16,8 @@ namespace Novolis.Analyzers.StackBoundaries;
 /// <c>NOV2004</c> Raylib/Simulation cross-refs, <c>NOV2005</c> Raylib rendering scene refs,
 /// <c>NOV2006</c> Avalonia refs outside Avalonia layer, <c>NOV2007</c> layer inversion,
 /// <c>NOV2008</c> Rendering/Simulation cross-refs, <c>NOV2009</c> Gaming must not ref Raylib/Rendering,
-/// <c>NOV2010</c> MAUI refs outside MAUI layer, <c>NOV2011</c> MAUI ↔ Avalonia island.
+/// <c>NOV2010</c> MAUI refs outside MAUI layer, <c>NOV2011</c> MAUI ↔ Avalonia island,
+/// <c>NOV2012</c> Blazor refs outside Blazor layer, <c>NOV2013</c> Blazor ↔ Avalonia/MAUI islands.
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
@@ -117,6 +118,24 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         customTags: ["CompilationEnd"]);
 
+    private static readonly DiagnosticDescriptor BlazorOutsideLayerRule = new(
+        "NOV2012",
+        "Only Novolis.Blazor.* libraries may depend on Blazor",
+        "Assembly '{0}' must not reference '{1}' — ASP.NET Core Blazor assemblies are reserved for Novolis.Blazor.* (apps compose Blazor at the product layer)",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
+    private static readonly DiagnosticDescriptor BlazorUiIslandRule = new(
+        "NOV2013",
+        "Blazor must not reference Avalonia or MAUI",
+        "Assembly '{0}' must not reference '{1}' — wire Blazor ↔ Avalonia/MAUI only in apps",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
     [
@@ -131,6 +150,8 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         GamingGraphicsIslandRule,
         MauiOutsideLayerRule,
         MauiAvaloniaIslandRule,
+        BlazorOutsideLayerRule,
+        BlazorUiIslandRule,
     ];
 
     /// <inheritdoc />
@@ -223,6 +244,14 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
     private static bool IsMauiLayerAssembly(string assemblyName) =>
         assemblyName.StartsWith("Novolis.Maui.", StringComparison.Ordinal)
         || assemblyName.Equals("Novolis.Maui", StringComparison.Ordinal);
+
+    private static bool IsBlazorAssembly(string refName) =>
+        refName.Equals("Microsoft.AspNetCore.Components", StringComparison.Ordinal)
+        || refName.StartsWith("Microsoft.AspNetCore.Components.", StringComparison.Ordinal);
+
+    private static bool IsBlazorLayerAssembly(string assemblyName) =>
+        assemblyName.StartsWith("Novolis.Blazor.", StringComparison.Ordinal)
+        || assemblyName.Equals("Novolis.Blazor", StringComparison.Ordinal);
 
     private static bool IsGrandfatheredMauiAdapter(string assemblyName) =>
         assemblyName.Equals("Novolis.Audio.Voice.Platform.Maui", StringComparison.Ordinal);
@@ -332,6 +361,34 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     MauiAvaloniaIslandRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
+
+            // NOV2012: only Novolis.Blazor.* libraries may take ASP.NET Core Blazor refs.
+            if (IsNovolisLibraryAssembly(self)
+                && !IsBlazorLayerAssembly(self)
+                && IsBlazorAssembly(refName))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    BlazorOutsideLayerRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
+
+            // NOV2013: Blazor, MAUI, and Avalonia remain independent UI islands.
+            if ((IsBlazorLayerAssembly(self)
+                    && (IsAvaloniaAssembly(refName)
+                        || IsAvaloniaLayerAssembly(refName)
+                        || IsMauiAssembly(refName)
+                        || IsMauiLayerAssembly(refName)))
+                || ((IsAvaloniaLayerAssembly(self) || IsMauiLayerAssembly(self))
+                    && (IsBlazorAssembly(refName) || IsBlazorLayerAssembly(refName))))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    BlazorUiIslandRule,
                     Location.None,
                     self,
                     refName));
