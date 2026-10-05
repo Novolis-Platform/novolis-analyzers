@@ -17,7 +17,9 @@ namespace Novolis.Analyzers.StackBoundaries;
 /// <c>NOV2006</c> Avalonia refs outside Avalonia layer, <c>NOV2007</c> layer inversion,
 /// <c>NOV2008</c> Rendering/Simulation cross-refs, <c>NOV2009</c> Gaming must not ref Raylib/Rendering,
 /// <c>NOV2010</c> MAUI refs outside MAUI layer, <c>NOV2011</c> MAUI ↔ Avalonia island,
-/// <c>NOV2012</c> Blazor refs outside Blazor layer, <c>NOV2013</c> Blazor ↔ Avalonia/MAUI islands.
+/// <c>NOV2012</c> Blazor refs outside Blazor layer, <c>NOV2013</c> Blazor ↔ Avalonia/MAUI islands,
+/// <c>NOV2015</c> Silk.NET outside novolis-silk, <c>NOV2016</c> Silk ↔ Rendering,
+/// <c>NOV2017</c> Gaming must not ref Silk.
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
@@ -136,6 +138,33 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         customTags: ["CompilationEnd"]);
 
+    private static readonly DiagnosticDescriptor SilkNetOutsideSilkRepoRule = new(
+        "NOV2015",
+        "Silk.NET is reserved for novolis-silk",
+        "Assembly '{0}' must not reference '{1}' — only novolis-silk may depend on Silk.NET",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
+    private static readonly DiagnosticDescriptor SilkRenderingIslandRule = new(
+        "NOV2016",
+        "Silk and Rendering must not reference each other",
+        "Assembly '{0}' must not reference '{1}' — wire Silk ↔ Rendering only in apps and Novolis.Avalonia.*",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
+    private static readonly DiagnosticDescriptor GamingSilkIslandRule = new(
+        "NOV2017",
+        "Gaming must not reference Silk",
+        "Assembly '{0}' must not reference '{1}' — Novolis.Game.* stays graphics-free; apps compose Silk",
+        "Novolis.Stack",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: ["CompilationEnd"]);
+
     /// <inheritdoc />
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
     [
@@ -152,6 +181,9 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         MauiAvaloniaIslandRule,
         BlazorOutsideLayerRule,
         BlazorUiIslandRule,
+        SilkNetOutsideSilkRepoRule,
+        SilkRenderingIslandRule,
+        GamingSilkIslandRule,
     ];
 
     /// <inheritdoc />
@@ -260,6 +292,19 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
     {
         var self = context.Compilation.AssemblyName ?? string.Empty;
         var selfRank = GetSpineRank(self);
+        var usedSilkNet = false;
+        foreach (var used in context.Compilation.GetUsedAssemblyReferences(context.CancellationToken))
+        {
+            var symbol = context.Compilation.GetAssemblyOrModuleSymbol(used);
+            var usedName = symbol?.Name ?? string.Empty;
+            if (IsSilkNetAssembly(usedName))
+            {
+                usedSilkNet = true;
+                break;
+            }
+        }
+
+        var sourceMentionsSilkNet = SourceMentionsSilkNet(context.Compilation);
 
         foreach (var reference in context.Compilation.ReferencedAssemblyNames)
         {
@@ -393,6 +438,41 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
                     self,
                     refName));
             }
+
+            // NOV2015: Silk.NET only in novolis-silk (source must mention Silk.NET; transitive refs via Novolis.Silk do not count).
+            if (usedSilkNet
+                && sourceMentionsSilkNet
+                && IsSilkNetAssembly(refName)
+                && !IsSilkLayerAssembly(self)
+                && !IsSilkRepoCompilation(context.Compilation))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    SilkNetOutsideSilkRepoRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
+
+            // NOV2016: Silk ↔ Rendering forbidden both ways.
+            if ((IsSilkLayerAssembly(self) && IsRenderingAssembly(refName))
+                || (IsRenderingAssembly(self) && IsSilkLayerAssembly(refName)))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    SilkRenderingIslandRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
+
+            // NOV2017: Gaming must not reference Silk.
+            if (IsGamingAssembly(self) && IsSilkLayerAssembly(refName))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    GamingSilkIslandRule,
+                    Location.None,
+                    self,
+                    refName));
+            }
         }
     }
 
@@ -407,6 +487,42 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
     private static bool IsRaylibAssembly(string name) =>
         name.StartsWith("Novolis.Raylib.", StringComparison.Ordinal)
         || name.Equals("Novolis.Raylib", StringComparison.Ordinal);
+
+    private static bool IsSilkLayerAssembly(string name) =>
+        name.StartsWith("Novolis.Silk.", StringComparison.Ordinal)
+        || name.Equals("Novolis.Silk", StringComparison.Ordinal);
+
+    private static bool IsSilkNetAssembly(string name) =>
+        name.Equals("Silk.NET", StringComparison.Ordinal)
+        || name.StartsWith("Silk.NET.", StringComparison.Ordinal);
+
+    private static bool SourceMentionsSilkNet(Compilation compilation)
+    {
+        foreach (var tree in compilation.SyntaxTrees)
+        {
+            var text = tree.GetText().ToString();
+            if (text.Contains("Silk.NET", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsSilkRepoCompilation(Compilation compilation)
+    {
+        foreach (var tree in compilation.SyntaxTrees)
+        {
+            var path = tree.FilePath.Replace('/', '\\');
+            if (path.Contains(@"\novolis-silk\", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool IsGamingAssembly(string name) =>
         name.StartsWith("Novolis.Game.", StringComparison.Ordinal)

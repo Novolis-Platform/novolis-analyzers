@@ -721,6 +721,111 @@ public sealed class StackBoundariesAnalyzerTests
         await Assert.That(diagnostics.Any(d => d.Id == "NOV2013")).IsTrue();
     }
 
+    [Test]
+    public async Task RenderingReferencingSilkNet_ReportsNov2015()
+    {
+        var silkComp = CSharpCompilation.Create("Silk.NET.OpenGL")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText("namespace Silk.NET.OpenGL { public class GL { } }"));
+        var silkRef = silkComp.ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("class C { Silk.NET.OpenGL.GL? g; }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Rendering.TwoD",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), silkRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2015")).IsTrue();
+    }
+
+    [Test]
+    public async Task SilkLayerReferencingRendering_ReportsNov2016()
+    {
+        var renderingRef = CSharpCompilation.Create("Novolis.Rendering.TwoD")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Silk { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Silk.Runtime",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), renderingRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2016")).IsTrue();
+    }
+
+    [Test]
+    public async Task RenderingReferencingSilk_ReportsNov2016()
+    {
+        var silkRef = CSharpCompilation.Create("Novolis.Silk.Runtime")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Rendering.TwoD { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Rendering.TwoD",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), silkRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2016")).IsTrue();
+    }
+
+    [Test]
+    public async Task GamingReferencingSilk_ReportsNov2017()
+    {
+        var silkRef = CSharpCompilation.Create("Novolis.Silk.Game")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Game.Menus { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Game.Menus",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), silkRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2017")).IsTrue();
+    }
+
+    [Test]
+    public async Task SilkLayerReferencingSilkNet_DoesNotReportNov2015()
+    {
+        var silkComp = CSharpCompilation.Create("Silk.NET.OpenGL")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText("namespace Silk.NET.OpenGL { public class GL { } }"));
+        var silkRef = silkComp.ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("class C { Silk.NET.OpenGL.GL? g; }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Silk.Runtime",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), silkRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2015")).IsFalse();
+    }
+
+    [Test]
+    public async Task AvaloniaLayerWithTransitiveSilkNet_DoesNotReportNov2015()
+    {
+        var silkComp = CSharpCompilation.Create("Silk.NET.OpenGL")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText("namespace Silk.NET.OpenGL { public class GL { } }"));
+        var silkRef = silkComp.ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Avalonia.Rendering { public static class C { } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Avalonia.Rendering",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), silkRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2015")).IsFalse();
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> AnalyzeMathAssemblyAsync(string code)
     {
         var tree = CSharpSyntaxTree.ParseText(code);
