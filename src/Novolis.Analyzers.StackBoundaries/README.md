@@ -18,7 +18,7 @@ Roslyn analyzer enforcing Novolis stack rules: BCL numerics, no `Vector2`, camer
 | `NOV2006` | Only `Novolis.Avalonia.*` may reference Avalonia UI assemblies |
 | `NOV2007` | Math → Physics → Simulation → Gaming → Avalonia (no upward refs) |
 | `NOV2008` | Rendering ↔ Simulation forbidden |
-| `NOV2009` | Gaming must not reference Raylib or Rendering |
+| `NOV2009` | Gaming must not reference Raylib |
 | `NOV2010` | Only `Novolis.Maui.*` may reference Microsoft.Maui assemblies (Voice.Platform.Maui grandfathered) |
 | `NOV2011` | MAUI ↔ Avalonia forbidden |
 | `NOV2012` | Only `Novolis.Blazor.*` may reference ASP.NET Core Blazor assemblies |

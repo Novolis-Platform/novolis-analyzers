@@ -410,7 +410,7 @@ public sealed class StackBoundariesAnalyzerTests
     }
 
     [Test]
-    public async Task GameReferencingRendering_ReportsNov2009()
+    public async Task GameReferencingRendering_DoesNotReportNov2009()
     {
         var renderingRef = CSharpCompilation.Create("Novolis.Rendering.Scene")
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
@@ -423,7 +423,7 @@ public sealed class StackBoundariesAnalyzerTests
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), renderingRef]);
 
         var diagnostics = await AnalyzeCompilationAsync(compilation);
-        await Assert.That(diagnostics.Any(d => d.Id == "NOV2009")).IsTrue();
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2009")).IsFalse();
     }
 
     [Test]
@@ -731,7 +731,7 @@ public sealed class StackBoundariesAnalyzerTests
 
         var tree = CSharpSyntaxTree.ParseText("class C { Silk.NET.OpenGL.GL? g; }");
         var compilation = CSharpCompilation.Create(
-            "Novolis.Rendering.TwoD",
+            "Novolis.Rendering.Planar",
             [tree],
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), silkRef]);
 
@@ -742,7 +742,7 @@ public sealed class StackBoundariesAnalyzerTests
     [Test]
     public async Task SilkLayerReferencingRendering_ReportsNov2016()
     {
-        var renderingRef = CSharpCompilation.Create("Novolis.Rendering.TwoD")
+        var renderingRef = CSharpCompilation.Create("Novolis.Rendering.Planar")
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .ToMetadataReference();
 
@@ -763,9 +763,9 @@ public sealed class StackBoundariesAnalyzerTests
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .ToMetadataReference();
 
-        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Rendering.TwoD { public static class C { } }");
+        var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Rendering.Planar { public static class C { } }");
         var compilation = CSharpCompilation.Create(
-            "Novolis.Rendering.TwoD",
+            "Novolis.Rendering.Planar",
             [tree],
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), silkRef]);
 

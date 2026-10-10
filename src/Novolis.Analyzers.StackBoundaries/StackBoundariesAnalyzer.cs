@@ -15,7 +15,7 @@ namespace Novolis.Analyzers.StackBoundaries;
 /// Diagnostic IDs: <c>NOV2001</c> duplicate numerics, <c>NOV2002</c> Vector2, <c>NOV2003</c> camera in Math,
 /// <c>NOV2004</c> Raylib/Simulation cross-refs, <c>NOV2005</c> Raylib rendering scene refs,
 /// <c>NOV2006</c> Avalonia refs outside Avalonia layer, <c>NOV2007</c> layer inversion,
-/// <c>NOV2008</c> Rendering/Simulation cross-refs, <c>NOV2009</c> Gaming must not ref Raylib/Rendering,
+/// <c>NOV2008</c> Rendering/Simulation cross-refs, <c>NOV2009</c> Gaming must not ref Raylib,
 /// <c>NOV2010</c> MAUI refs outside MAUI layer, <c>NOV2011</c> MAUI ↔ Avalonia island,
 /// <c>NOV2012</c> Blazor refs outside Blazor layer, <c>NOV2013</c> Blazor ↔ Avalonia/MAUI islands,
 /// <c>NOV2015</c> Silk.NET outside novolis-silk, <c>NOV2016</c> Silk ↔ Rendering,
@@ -95,8 +95,8 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor GamingGraphicsIslandRule = new(
         "NOV2009",
-        "Gaming must not reference Raylib or Rendering",
-        "Assembly '{0}' must not reference '{1}' — Novolis.Game.* stays graphics-free; apps compose Raylib/Rendering",
+        "Gaming must not reference Raylib",
+        "Assembly '{0}' must not reference '{1}' — Novolis.Game.* sits on Sim and Render; apps compose Raylib",
         "Novolis.Stack",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
@@ -159,7 +159,7 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor GamingSilkIslandRule = new(
         "NOV2017",
         "Gaming must not reference Silk",
-        "Assembly '{0}' must not reference '{1}' — Novolis.Game.* stays graphics-free; apps compose Silk",
+        "Assembly '{0}' must not reference '{1}' — Novolis.Game.* sits on Sim and Render; GAME composes Silk",
         "Novolis.Stack",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
@@ -376,9 +376,8 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
                     refName));
             }
 
-            // NOV2009: Gaming must not reference Raylib or Rendering.
-            if (IsGamingAssembly(self)
-                && (IsRaylibAssembly(refName) || IsRenderingAssembly(refName)))
+            // NOV2009: Gaming must not reference Raylib. Rendering is allowed (peer of Simulation).
+            if (IsGamingAssembly(self) && IsRaylibAssembly(refName))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     GamingGraphicsIslandRule,
