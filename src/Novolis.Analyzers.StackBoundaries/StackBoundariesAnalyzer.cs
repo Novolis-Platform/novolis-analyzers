@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -193,7 +194,7 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.RegisterSymbolAction(AnalyzeType, SymbolKind.NamedType);
         context.RegisterSyntaxNodeAction(AnalyzeSyntax, SyntaxKind.IdentifierName, SyntaxKind.QualifiedName);
-        context.RegisterCompilationAction(AnalyzeCompilation);
+        context.RegisterCompilationStartAction(StartCompilation);
     }
 
     private static bool IsNumericStackAssembly(Compilation compilation)
@@ -288,22 +289,43 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
     private static bool IsGrandfatheredMauiAdapter(string assemblyName) =>
         assemblyName.Equals("Novolis.Audio.Voice.Platform.Maui", StringComparison.Ordinal);
 
-    private static void AnalyzeCompilation(CompilationAnalysisContext context)
+    private static void StartCompilation(CompilationStartAnalysisContext context)
+    {
+        var sourceReferencedAssemblyNames = new ConcurrentDictionary<string, byte>(StringComparer.Ordinal);
+        context.RegisterSyntaxNodeAction(
+            nodeContext => CollectSourceReferencedAssemblyNames(nodeContext, sourceReferencedAssemblyNames),
+            SyntaxKind.IdentifierName,
+            SyntaxKind.QualifiedName);
+        context.RegisterCompilationEndAction(
+            compilationContext => AnalyzeCompilation(compilationContext, sourceReferencedAssemblyNames));
+    }
+
+    private static void CollectSourceReferencedAssemblyNames(
+        SyntaxNodeAnalysisContext context,
+        ConcurrentDictionary<string, byte> assemblyNames)
+    {
+        AddAssemblyName(assemblyNames, context.SemanticModel.GetSymbolInfo(context.Node, context.CancellationToken).Symbol);
+        AddAssemblyName(assemblyNames, context.SemanticModel.GetTypeInfo(context.Node, context.CancellationToken).Type);
+    }
+
+    private static void AnalyzeCompilation(
+        CompilationAnalysisContext context,
+        ConcurrentDictionary<string, byte> sourceReferencedAssemblyNames)
     {
         var self = context.Compilation.AssemblyName ?? string.Empty;
         var selfRank = GetSpineRank(self);
-        var usedSilkNet = false;
+        var usedReferenceNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var used in context.Compilation.GetUsedAssemblyReferences(context.CancellationToken))
         {
             var symbol = context.Compilation.GetAssemblyOrModuleSymbol(used);
             var usedName = symbol?.Name ?? string.Empty;
-            if (IsSilkNetAssembly(usedName))
+            if (!string.IsNullOrEmpty(usedName))
             {
-                usedSilkNet = true;
-                break;
+                usedReferenceNames.Add(usedName);
             }
         }
 
+        var usedSilkNet = usedReferenceNames.Any(IsSilkNetAssembly);
         var sourceMentionsSilkNet = SourceMentionsSilkNet(context.Compilation);
 
         foreach (var reference in context.Compilation.ReferencedAssemblyNames)
@@ -413,7 +435,8 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
             // NOV2012: only Novolis.Blazor.* libraries may take ASP.NET Core Blazor refs.
             if (IsNovolisLibraryAssembly(self)
                 && !IsBlazorLayerAssembly(self)
-                && IsBlazorAssembly(refName))
+                && IsBlazorAssembly(refName)
+                && sourceReferencedAssemblyNames.ContainsKey(refName))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     BlazorOutsideLayerRule,
@@ -507,6 +530,15 @@ public sealed class StackBoundariesAnalyzer : DiagnosticAnalyzer
         }
 
         return false;
+    }
+
+    private static void AddAssemblyName(ConcurrentDictionary<string, byte> assemblyNames, ISymbol? symbol)
+    {
+        var assemblyName = symbol?.ContainingAssembly?.Name;
+        if (!string.IsNullOrEmpty(assemblyName))
+        {
+            assemblyNames.TryAdd(assemblyName!, 0);
+        }
     }
 
     private static bool IsSilkRepoCompilation(Compilation compilation)

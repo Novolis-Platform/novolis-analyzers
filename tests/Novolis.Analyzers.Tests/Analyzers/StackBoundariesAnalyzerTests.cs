@@ -658,6 +658,26 @@ public sealed class StackBoundariesAnalyzerTests
     {
         var blazorRef = CSharpCompilation.Create("Microsoft.AspNetCore.Components")
             .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+            .AddSyntaxTrees(CSharpSyntaxTree.ParseText(
+                "namespace Microsoft.AspNetCore.Components { public sealed class ComponentMarker { } }"))
+            .ToMetadataReference();
+
+        var tree = CSharpSyntaxTree.ParseText(
+            "namespace Novolis.Simulation.Core { public static class Sim { public static Microsoft.AspNetCore.Components.ComponentMarker? Marker; } }");
+        var compilation = CSharpCompilation.Create(
+            "Novolis.Simulation.Core",
+            [tree],
+            [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), blazorRef]);
+
+        var diagnostics = await AnalyzeCompilationAsync(compilation);
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2012")).IsTrue();
+    }
+
+    [Test]
+    public async Task SimulationReferencingUnusedBlazor_DoesNotReportNov2012()
+    {
+        var blazorRef = CSharpCompilation.Create("Microsoft.AspNetCore.Components")
+            .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
             .ToMetadataReference();
 
         var tree = CSharpSyntaxTree.ParseText("namespace Novolis.Simulation.Core { public static class Sim { } }");
@@ -667,7 +687,7 @@ public sealed class StackBoundariesAnalyzerTests
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), blazorRef]);
 
         var diagnostics = await AnalyzeCompilationAsync(compilation);
-        await Assert.That(diagnostics.Any(d => d.Id == "NOV2012")).IsTrue();
+        await Assert.That(diagnostics.Any(d => d.Id == "NOV2012")).IsFalse();
     }
 
     [Test]
