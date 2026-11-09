@@ -4,7 +4,7 @@
     <IsTestProject>true</IsTestProject>
     <RootNamespace>Novolis.Analyzers.Tests</RootNamespace>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <NoWarn>$(NoWarn);FRANK4010;FRANK4011;NOV2101;NOV2102;NOV2201;CS8625</NoWarn>
+    <NoWarn>$(NoWarn);FRANK4010;FRANK4011;NOV2101;NOV2102;NOV2201;NOV2301;CS8625</NoWarn>
     <EmitCompilerGeneratedFiles>false</EmitCompilerGeneratedFiles>
     <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>false</IsRoslynComponent>
@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\src\Novolis.Analyzers.Conventions\Novolis.Analyzers.Conventions.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.Licensing\Novolis.Analyzers.Licensing.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.OneTypePerFile\Novolis.Analyzers.OneTypePerFile.csproj" />
+    <ProjectReference Include="..\..\src\Novolis.Analyzers.ReadabilityComplexity\Novolis.Analyzers.ReadabilityComplexity.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.StackBoundaries\Novolis.Analyzers.StackBoundaries.csproj" />
     <ProjectReference Include="..\..\src\Novolis.Analyzers.CodeLength\Novolis.Analyzers.CodeLength.csproj"
                       OutputItemType="Analyzer"

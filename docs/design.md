@@ -7,6 +7,7 @@ Diagnostic ID ranges and package ownership:
 | `NOV2001`–`NOV2011` | `Novolis.Analyzers.StackBoundaries` | Roslyn — stack / island / Avalonia / MAUI |
 | `NOV2101`–`NOV2102` | `Novolis.Analyzers.Conventions` | Roslyn — naming conventions |
 | `NOV2201` | `Novolis.Analyzers.OneTypePerFile` | Roslyn — one top-level type per file, with fixer |
+| `NOV2301` | `Novolis.Analyzers.ReadabilityComplexity` | Roslyn — readability-complexity advisory |
 | `NOV3001`–`NOV3003` | `Novolis.Analyzers.Licensing` | MSBuild tasks — safe licenses |
 | `FRANK4010`–`FRANK4011` | `Novolis.Analyzers.CodeLength` | Roslyn — line counts (legacy IDs) |
 
@@ -35,6 +36,16 @@ Local wiring: `novolis-governance/build/Novolis.StackAnalyzers.props` (also load
 | `NOV2201` | More than one top-level type in a source file. Nested types stay with their parent. Partials of the same type count as one. The type whose name matches the file stays; otherwise the first type stays. | Yes — move each extra type to `{TypeName}.cs`. Fix All covers document, project, and solution. |
 
 Warning severity. `Novolis.OneTypePerFile.props` adds `NOV2201` to `WarningsNotAsErrors`. Opt out: `NovolisOneTypePerFile=false`.
+
+## ReadabilityComplexity
+
+| ID | Rule | Fixer |
+|----|------|-------|
+| `NOV2301` | Executable body readability-complexity score ≥ soft threshold (default 20). Message includes total and primary contributors. | No |
+
+Warning severity. Wired everywhere via `Novolis.ReadabilityComplexity.props` (imported from `Novolis.OneTypePerFile.props`). Listed in `WarningsNotAsErrors`. Opt out: `NovolisReadabilityComplexity=false`. Threshold: `.editorconfig` key `novolis_readability_complexity_threshold`.
+
+Measures local cognitive bookkeeping (declarations, decisions, consumed results, explicit non-local mutation). Does **not** treat void/command calls, awaits, or physical line count as complexity.
 
 ## Conventions
 
