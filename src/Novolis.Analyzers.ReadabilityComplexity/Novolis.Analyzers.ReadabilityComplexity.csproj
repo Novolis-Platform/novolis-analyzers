@@ -8,6 +8,8 @@
     <Description>Roslyn analyzer that estimates C# method readability complexity from local cognitive bookkeeping (declarations, decisions, consumed results, explicit non-local mutation).</Description>
     <IsPackable>true</IsPackable>
     <IsRoslynComponent>true</IsRoslynComponent>
+    <!-- Ship lib assets so tooling can LibraryReference scoring APIs; still pack under analyzers/dotnet/cs. -->
+    <IncludeBuildOutput>true</IncludeBuildOutput>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <NoWarn>$(NoWarn);RS2007;RS2008;RS1037;RS1038</NoWarn>
   </PropertyGroup>

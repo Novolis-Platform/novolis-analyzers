@@ -12,7 +12,7 @@ internal static class ReadabilityComplexityFacts
     /// <summary>
     /// Soft advisory threshold. Builds keep compiling because governance lists NOV2301 in WarningsNotAsErrors.
     /// </summary>
-    public const int DefaultThreshold = 20;
+    public const int DefaultThreshold = 20; // mirrored by ReadabilityComplexityMeter.DefaultThreshold
 
     public const string ThresholdEditorConfigKey = "novolis_readability_complexity_threshold";
 
