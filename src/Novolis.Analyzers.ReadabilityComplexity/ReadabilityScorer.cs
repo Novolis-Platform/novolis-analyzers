@@ -12,7 +12,7 @@ internal static class ReadabilityScorer
 {
     public static ReadabilityScore Score(SyntaxNode body, SemanticModel model, CancellationToken cancellationToken)
     {
-        var walker = new ScoringWalker(model, cancellationToken);
+        var walker = new ScoringWalker(model, ScoringContext.Infer(body), cancellationToken);
         walker.Visit(body);
         return walker.ToScore();
     }
@@ -20,9 +20,11 @@ internal static class ReadabilityScorer
     private sealed class ScoringWalker : CSharpSyntaxWalker
     {
         private readonly SemanticModel _model;
+        private readonly ScoringContext _context;
         private readonly CancellationToken _cancellationToken;
         private readonly HashSet<ILocalSymbol> _locallyOwned = new(SymbolEqualityComparer.Default);
         private readonly Dictionary<ISymbol, int> _externalMutationCounts = new(SymbolEqualityComparer.Default);
+        private int _cheapInstanceInitPoints;
 
         private int _declarations;
         private int _localReassignments;
@@ -34,10 +36,11 @@ internal static class ReadabilityScorer
         private int _externalMutationPoints;
         private int _consumedResults;
 
-        public ScoringWalker(SemanticModel model, CancellationToken cancellationToken)
+        public ScoringWalker(SemanticModel model, ScoringContext context, CancellationToken cancellationToken)
             : base(SyntaxWalkerDepth.Node)
         {
             _model = model;
+            _context = context;
             _cancellationToken = cancellationToken;
         }
 
@@ -283,11 +286,26 @@ internal static class ReadabilityScorer
                 }
             }
 
-            if (TryGetExternalMutationTarget(left, out var target) && target is not null)
+            // Classic DI / constructor injection: _repo = repo; this.Services = services;
+            if (right is not null && IsDependencyInjectionStore(left, right))
+                return;
+
+            if (IsLocallyOwnedMutation(left))
+                return;
+
+            // Constructors / UI-DI composition helpers: instance chrome wiring is cheap and capped.
+            if (_context.CheapInstanceInit && IsSelfInstanceMutation(left))
             {
-                if (IsLocallyOwnedMutation(left))
+                if (_cheapInstanceInitPoints >= ScoringContext.MaxCheapInstanceInitPoints)
                     return;
 
+                _cheapInstanceInitPoints++;
+                _externalMutationPoints += 1;
+                return;
+            }
+
+            if (TryGetExternalMutationTarget(left, out var target) && target is not null)
+            {
                 if (!_externalMutationCounts.TryGetValue(target, out var count))
                     count = 0;
 
@@ -297,13 +315,136 @@ internal static class ReadabilityScorer
             }
         }
 
-        private bool IsLocallyOwnedMutation(ExpressionSyntax left)
+        private bool IsDependencyInjectionStore(ExpressionSyntax left, ExpressionSyntax right)
         {
-            if (!TryGetRootIdentifier(left, out var identifier))
+            right = Unwrap(right);
+            if (right is not IdentifierNameSyntax rightName)
                 return false;
 
-            var symbol = _model.GetSymbolInfo(identifier, _cancellationToken).Symbol;
-            return symbol is ILocalSymbol local && _locallyOwned.Contains(local);
+            if (_model.GetSymbolInfo(rightName, _cancellationToken).Symbol is not IParameterSymbol parameter)
+                return false;
+
+            if (!TryGetAssignedInstanceMember(left, out var member))
+                return false;
+
+            // In constructors, any parameter stored into instance state is ordinary DI wiring.
+            if (_context.IsConstructor)
+                return true;
+
+            // Elsewhere, only the classic name match (_foo/foo/Foo ← foo) counts as free injection.
+            return NamesMatchForInjection(member.Name, parameter.Name);
+        }
+
+        private bool TryGetAssignedInstanceMember(ExpressionSyntax left, out ISymbol member)
+        {
+            member = null!;
+            left = Unwrap(left);
+
+            switch (left)
+            {
+                case IdentifierNameSyntax identifier:
+                {
+                    var symbol = _model.GetSymbolInfo(identifier, _cancellationToken).Symbol;
+                    if (symbol is IFieldSymbol { IsStatic: false } or IPropertySymbol { IsStatic: false })
+                    {
+                        member = symbol;
+                        return true;
+                    }
+
+                    return false;
+                }
+                case MemberAccessExpressionSyntax memberAccess:
+                {
+                    if (!IsThisOrImplicitThisReceiver(memberAccess.Expression))
+                        return false;
+
+                    var symbol = _model.GetSymbolInfo(memberAccess, _cancellationToken).Symbol;
+                    if (symbol is IFieldSymbol { IsStatic: false } or IPropertySymbol { IsStatic: false })
+                    {
+                        member = symbol;
+                        return true;
+                    }
+
+                    return false;
+                }
+                default:
+                    return false;
+            }
+        }
+
+        private bool IsSelfInstanceMutation(ExpressionSyntax left)
+        {
+            left = Unwrap(left);
+
+            if (left is IdentifierNameSyntax identifier)
+            {
+                var symbol = _model.GetSymbolInfo(identifier, _cancellationToken).Symbol;
+                return symbol is IFieldSymbol { IsStatic: false } or IPropertySymbol { IsStatic: false };
+            }
+
+            if (left is MemberAccessExpressionSyntax member)
+            {
+                // this.X / this.X.Y / Me.X — root receiver is the instance under construction.
+                return IsThisOrInstanceFieldRoot(member.Expression);
+            }
+
+            if (left is ElementAccessExpressionSyntax element)
+                return IsThisOrInstanceFieldRoot(element.Expression);
+
+            return false;
+        }
+
+        private bool IsThisOrInstanceFieldRoot(ExpressionSyntax expression)
+        {
+            expression = Unwrap(expression);
+            if (IsThisOrImplicitThisReceiver(expression))
+                return true;
+
+            if (expression is IdentifierNameSyntax identifier)
+            {
+                var symbol = _model.GetSymbolInfo(identifier, _cancellationToken).Symbol;
+                return symbol is IFieldSymbol { IsStatic: false } or IPropertySymbol { IsStatic: false };
+            }
+
+            if (expression is MemberAccessExpressionSyntax member)
+                return IsThisOrInstanceFieldRoot(member.Expression);
+
+            return false;
+        }
+
+        private static bool IsThisOrImplicitThisReceiver(ExpressionSyntax expression)
+        {
+            expression = Unwrap(expression);
+            return expression is ThisExpressionSyntax or BaseExpressionSyntax;
+        }
+
+        private static bool NamesMatchForInjection(string memberName, string parameterName)
+        {
+            static string Normalize(string name)
+            {
+                if (name.StartsWith("_", StringComparison.Ordinal))
+                    name = name.Substring(1);
+                else if (name.StartsWith("m_", StringComparison.OrdinalIgnoreCase) && name.Length > 2)
+                    name = name.Substring(2);
+
+                return name;
+            }
+
+            return string.Equals(
+                Normalize(memberName),
+                Normalize(parameterName),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsLocallyOwnedMutation(ExpressionSyntax left)
+        {
+            if (TryGetRootIdentifier(left, out var identifier))
+            {
+                var symbol = _model.GetSymbolInfo(identifier, _cancellationToken).Symbol;
+                return symbol is ILocalSymbol local && _locallyOwned.Contains(local);
+            }
+
+            return false;
         }
 
         private bool TryGetExternalMutationTarget(ExpressionSyntax left, out ISymbol? target)
@@ -322,6 +463,11 @@ internal static class ReadabilityScorer
                         {
                             target = _model.GetSymbolInfo(root, _cancellationToken).Symbol
                                      ?? _model.GetTypeInfo(member.Expression, _cancellationToken).Type;
+                        }
+                        else if (IsThisOrImplicitThisReceiver(member.Expression))
+                        {
+                            // Group all this.* writes under the containing type.
+                            target = symbol.ContainingType;
                         }
                         else
                         {
@@ -346,6 +492,19 @@ internal static class ReadabilityScorer
                 case IdentifierNameSyntax identifier:
                 {
                     var symbol = _model.GetSymbolInfo(identifier, _cancellationToken).Symbol;
+                    if (symbol is IFieldSymbol { IsStatic: false } field)
+                    {
+                        // Group instance field writes; statics stay distinct.
+                        target = (ISymbol?)field.ContainingType ?? field;
+                        return true;
+                    }
+
+                    if (symbol is IPropertySymbol { IsStatic: false } property)
+                    {
+                        target = (ISymbol?)property.ContainingType ?? property;
+                        return true;
+                    }
+
                     if (symbol is IFieldSymbol or IPropertySymbol)
                     {
                         target = symbol;

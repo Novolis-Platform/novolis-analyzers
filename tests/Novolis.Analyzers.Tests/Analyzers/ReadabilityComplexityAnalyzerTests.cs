@@ -309,6 +309,131 @@ public sealed class ReadabilityComplexityAnalyzerTests
         await Assert.That(score.FormatBreakdown().Contains("total=13")).IsTrue();
     }
 
+    [Test]
+    public async Task ConstructorDependencyInjection_IsFree()
+    {
+        const string code = """
+                            public class Processor
+                            {
+                                private readonly IRepository _repository;
+                                private readonly IPublisher publisher;
+
+                                public Processor(IRepository repository, IPublisher publisher)
+                                {
+                                    _repository = repository;
+                                    this.publisher = publisher;
+                                }
+                            }
+
+                            public interface IRepository { }
+                            public interface IPublisher { }
+                            """;
+
+        var score = await ScoreConstructorAsync(code);
+        await Assert.That(score.Total).IsEqualTo(0);
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ConstructorUiChromeWiring_IsCappedCheap()
+    {
+        const string code = """
+                            public class MainWindow
+                            {
+                                public string Title { get; set; }
+                                public object Content { get; set; }
+                                public int Width { get; set; }
+                                public int Height { get; set; }
+                                public bool CanResize { get; set; }
+                                public bool ShowInTaskbar { get; set; }
+                                public string Name { get; set; }
+                                public object DataContext { get; set; }
+
+                                public MainWindow()
+                                {
+                                    Title = "App";
+                                    Content = null;
+                                    Width = 800;
+                                    Height = 600;
+                                    CanResize = true;
+                                    ShowInTaskbar = true;
+                                    Name = "Main";
+                                    DataContext = null;
+                                }
+                            }
+                            """;
+
+        var score = await ScoreConstructorAsync(code);
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(5);
+        await Assert.That(score.Total).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task BuildLayout_TreatsInstanceWiringAsCheap()
+    {
+        const string code = """
+                            public class Shell
+                            {
+                                public object Root { get; set; }
+                                public object Nav { get; set; }
+                                public object Body { get; set; }
+                                public object Status { get; set; }
+                                public object Footer { get; set; }
+                                public object Banner { get; set; }
+
+                                public void BuildLayout()
+                                {
+                                    Root = new object();
+                                    Nav = new object();
+                                    Body = new object();
+                                    Status = new object();
+                                    Footer = new object();
+                                    Banner = new object();
+                                }
+                            }
+                            """;
+
+        var score = await ScoreMethodAsync(code, "BuildLayout");
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(5);
+        await Assert.That(score.Total).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task ArgumentMutationOutsideConstructor_StillExpensive()
+    {
+        const string code = """
+                            public class Updater
+                            {
+                                public void Update(Request request)
+                                {
+                                    request.Status = Status.Processed;
+                                    request.Name = "x";
+                                }
+                            }
+
+                            public class Request
+                            {
+                                public Status Status { get; set; }
+                                public string Name { get; set; }
+                            }
+                            public enum Status { Pending, Processed }
+                            """;
+
+        var score = await ScoreMethodAsync(code, "Update");
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(11);
+    }
+
+    [Test]
+    public async Task InitLikeName_DetectsCompositionHelpers()
+    {
+        await Assert.That(ScoringContext.IsInitLikeName("ConfigureServices")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("BuildLayout")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("InitializeComponent")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("Build")).IsFalse();
+        await Assert.That(ScoringContext.IsInitLikeName("Initialize")).IsFalse();
+        await Assert.That(ScoringContext.IsInitLikeName("ProcessAsync")).IsFalse();
+    }
+
     private static async Task<ReadabilityScore> ScoreMethodAsync(string code, string methodName)
     {
         var (compilation, tree) = CreateCompilation(code);
@@ -321,6 +446,18 @@ public sealed class ReadabilityComplexityAnalyzerTests
             ? method.Body
             : method.ExpressionBody!.Expression;
 
+        return ReadabilityScorer.Score(body, model, CancellationToken.None);
+    }
+
+    private static async Task<ReadabilityScore> ScoreConstructorAsync(string code)
+    {
+        var (compilation, tree) = CreateCompilation(code);
+        var model = compilation.GetSemanticModel(tree);
+        var root = await tree.GetRootAsync();
+        var ctor = root.DescendantNodes().OfType<ConstructorDeclarationSyntax>().First();
+        SyntaxNode body = ctor.Body is not null
+            ? ctor.Body
+            : ctor.ExpressionBody!.Expression;
         return ReadabilityScorer.Score(body, model, CancellationToken.None);
     }
 

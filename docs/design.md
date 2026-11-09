@@ -45,7 +45,7 @@ Warning severity. `Novolis.OneTypePerFile.props` adds `NOV2201` to `WarningsNotA
 
 Warning severity. Wired everywhere via `Novolis.ReadabilityComplexity.props` (imported from `Novolis.OneTypePerFile.props`). Listed in `WarningsNotAsErrors`. Opt out: `NovolisReadabilityComplexity=false`. Threshold: `.editorconfig` key `novolis_readability_complexity_threshold`.
 
-Measures local cognitive bookkeeping (declarations, decisions, consumed results, explicit non-local mutation). Does **not** treat void/command calls, awaits, or physical line count as complexity.
+Measures local cognitive bookkeeping (declarations, decisions, consumed results, explicit non-local mutation). Does **not** treat void/command calls, awaits, or physical line count as complexity. Constructor DI stores and capped instance chrome wiring in constructors / init-like members (`InitializeComponent`, `ConfigureServices`, `BuildLayout`, …) are discounted so UI/DI setup does not dominate.
 
 ## Conventions
 

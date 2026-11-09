@@ -33,6 +33,10 @@ Warning severity. Platform builds list `NOV2301` in `WarningsNotAsErrors` so it 
 | First explicit mutation of a distinct non-local target | 10 |
 | Further mutations of the same target | 1 |
 | Mutation of a locally owned `new` object | 0 |
+| Constructor DI store (`_repo = repo` / `this.X = x` from a parameter) | 0 |
+| Constructor / init-like instance chrome wiring (`this.Title = …`) | 1 each, capped at **5** |
+
+Init-like members (narrow list): `InitializeComponent`, `ConfigureServices`, `BuildLayout` / `BuildUi` / …, `Create*View` / `Create*Layout`, etc. Bare `Build` / `Initialize` are **not** treated as init-like.
 
 Nested lambdas and local functions are scored on their own bodies, not folded into the parent.
 
