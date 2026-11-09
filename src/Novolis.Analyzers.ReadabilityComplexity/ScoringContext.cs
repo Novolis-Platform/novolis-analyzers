@@ -93,7 +93,12 @@ internal readonly record struct ScoringContext(
                    || rest.Equals("Content", StringComparison.OrdinalIgnoreCase)
                    || rest.Equals("Window", StringComparison.OrdinalIgnoreCase)
                    || rest.Equals("Controls", StringComparison.OrdinalIgnoreCase)
-                   || rest.Equals("Tree", StringComparison.OrdinalIgnoreCase);
+                   || rest.Equals("Tree", StringComparison.OrdinalIgnoreCase)
+                   || rest.Equals("Panel", StringComparison.OrdinalIgnoreCase)
+                   || rest.Equals("Page", StringComparison.OrdinalIgnoreCase)
+                   || rest.Equals("Card", StringComparison.OrdinalIgnoreCase)
+                   || rest.EndsWith("Panel", StringComparison.OrdinalIgnoreCase)
+                   || rest.EndsWith("Page", StringComparison.OrdinalIgnoreCase);
         }
 
         if (name.StartsWith("Create", StringComparison.OrdinalIgnoreCase))
@@ -102,7 +107,9 @@ internal readonly record struct ScoringContext(
                    || name.IndexOf("View", StringComparison.OrdinalIgnoreCase) >= 0
                    || name.IndexOf("Ui", StringComparison.OrdinalIgnoreCase) >= 0
                    || name.IndexOf("UI", StringComparison.OrdinalIgnoreCase) >= 0
-                   || name.IndexOf("Window", StringComparison.OrdinalIgnoreCase) >= 0;
+                   || name.IndexOf("Window", StringComparison.OrdinalIgnoreCase) >= 0
+                   || name.IndexOf("Panel", StringComparison.OrdinalIgnoreCase) >= 0
+                   || name.IndexOf("Page", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         return false;

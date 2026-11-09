@@ -428,10 +428,12 @@ public sealed class ReadabilityComplexityAnalyzerTests
     {
         await Assert.That(ScoringContext.IsInitLikeName("ConfigureServices")).IsTrue();
         await Assert.That(ScoringContext.IsInitLikeName("BuildLayout")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("BuildAzureSetupPanel")).IsTrue();
         await Assert.That(ScoringContext.IsInitLikeName("InitializeComponent")).IsTrue();
         await Assert.That(ScoringContext.IsInitLikeName("Build")).IsFalse();
         await Assert.That(ScoringContext.IsInitLikeName("Initialize")).IsFalse();
         await Assert.That(ScoringContext.IsInitLikeName("ProcessAsync")).IsFalse();
+        await Assert.That(ScoringContext.IsInitLikeName("RefreshListen")).IsFalse();
     }
 
     private static async Task<ReadabilityScore> ScoreMethodAsync(string code, string methodName)
