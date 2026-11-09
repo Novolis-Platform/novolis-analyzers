@@ -30,13 +30,16 @@ Warning severity. Platform builds list `NOV2301` in `WarningsNotAsErrors` so it 
 | `throw` | 1 |
 | Consumed method/await result (top-level consumption site) | 1 |
 | Void / fire-and-forget invocation | 0 |
-| First explicit mutation of a distinct non-local target | 10 |
-| Further mutations of the same target | 1 |
-| Mutation of a locally owned `new` object | 0 |
-| Constructor DI store (`_repo = repo` / `this.X = x` from a parameter) | 0 |
-| Constructor / init-like instance chrome wiring (`this.Title = …`) | 1 each, capped at **5** |
+| First explicit mutation of a distinct **external** target (parameter / foreign object) | 10 |
+| Further mutations of the same external target | 1 |
+| Mutation of a locally owned `new` / factory / field-alias object | 0 |
+| Constructor DI store (`_repo = repo` / `repo ?? throw …`) | 0 |
+| `ArgumentNullException` / `ArgumentException` guard throws | 0 |
+| Event hookup (`Click += …`) | 0 |
+| Own-instance / owned-control surface stamps (`_flag = …`, `_btn.IsEnabled = …`) | 1 each, capped at **10** |
+| Constructor / init-like chrome wiring | 1 each, capped at **5** (further self-writes free) |
 
-Init-like members (narrow list): `InitializeComponent`, `ConfigureServices`, `BuildLayout` / `BuildUi` / …, `Create*View` / `Create*Layout`, etc. Bare `Build` / `Initialize` are **not** treated as init-like.
+Init-like members (narrow list): `InitializeComponent`, `ConfigureServices`, `Main`, `OnCreate`, `OnFrameworkInitializationCompleted`, `Refresh*`, `BuildLayout` / `Build*Panel` / …, `Create*View` / `Create*Layout`, etc. Bare `Build` / `Initialize` are **not** treated as init-like.
 
 Nested lambdas and local functions are scored on their own bodies, not folded into the parent.
 

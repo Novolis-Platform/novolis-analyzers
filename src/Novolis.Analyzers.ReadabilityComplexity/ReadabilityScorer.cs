@@ -25,6 +25,7 @@ internal static class ReadabilityScorer
         private readonly HashSet<ILocalSymbol> _locallyOwned = new(SymbolEqualityComparer.Default);
         private readonly Dictionary<ISymbol, int> _externalMutationCounts = new(SymbolEqualityComparer.Default);
         private int _cheapInstanceInitPoints;
+        private int _ownedSurfaceUpdatePoints;
 
         private int _declarations;
         private int _localReassignments;
@@ -87,7 +88,8 @@ internal static class ReadabilityScorer
 
             if (node.Initializer?.Value is { } value
                 && IsConsumptionSite(node.Initializer)
-                && ContainsConsumedInvocation(value))
+                && ContainsConsumedInvocation(value)
+                && !ShouldIgnoreConsumedFactory(value))
             {
                 _consumedResults++;
             }
@@ -100,6 +102,13 @@ internal static class ReadabilityScorer
             _cancellationToken.ThrowIfCancellationRequested();
             _iterationPoints += 2;
             _declarations++; // iteration variable
+
+            if (_model.GetDeclaredSymbol(node, _cancellationToken) is ILocalSymbol local
+                && IsOwnedForeachCollection(node.Expression))
+            {
+                _locallyOwned.Add(local);
+            }
+
             base.VisitForEachStatement(node);
         }
 
@@ -191,14 +200,16 @@ internal static class ReadabilityScorer
         public override void VisitThrowStatement(ThrowStatementSyntax node)
         {
             _cancellationToken.ThrowIfCancellationRequested();
-            _throwPoints++;
+            if (!IsBoilerplateGuardThrow(node.Expression))
+                _throwPoints++;
             base.VisitThrowStatement(node);
         }
 
         public override void VisitThrowExpression(ThrowExpressionSyntax node)
         {
             _cancellationToken.ThrowIfCancellationRequested();
-            _throwPoints++;
+            if (!IsBoilerplateGuardThrow(node.Expression))
+                _throwPoints++;
             base.VisitThrowExpression(node);
         }
 
@@ -214,7 +225,7 @@ internal static class ReadabilityScorer
 
             ScoreAssignmentTarget(node.Left, node.Right);
 
-            if (ContainsConsumedInvocation(node.Right))
+            if (ContainsConsumedInvocation(node.Right) && !ShouldIgnoreConsumedFactory(node.Right))
                 _consumedResults++;
 
             base.VisitAssignmentExpression(node);
@@ -255,7 +266,7 @@ internal static class ReadabilityScorer
             if (symbol is null)
                 return;
 
-            if (IsObjectCreation(Unwrap(node.Initializer.Value)))
+            if (IsOwnedLocalInitializer(Unwrap(node.Initializer.Value)))
                 _locallyOwned.Add(symbol);
             else
                 _locallyOwned.Remove(symbol);
@@ -271,7 +282,7 @@ internal static class ReadabilityScorer
                 if (symbol is ILocalSymbol local)
                 {
                     _localReassignments++;
-                    if (right is not null && IsObjectCreation(Unwrap(right)))
+                    if (right is not null && IsOwnedLocalInitializer(Unwrap(right)))
                         _locallyOwned.Add(local);
                     else
                         _locallyOwned.Remove(local);
@@ -287,19 +298,37 @@ internal static class ReadabilityScorer
             }
 
             // Classic DI / constructor injection: _repo = repo; this.Services = services;
+            // also _repo = repo ?? throw new ArgumentNullException(...)
             if (right is not null && IsDependencyInjectionStore(left, right))
                 return;
 
             if (IsLocallyOwnedMutation(left))
                 return;
 
-            // Constructors / UI-DI composition helpers: instance chrome wiring is cheap and capped.
-            if (_context.CheapInstanceInit && IsSelfInstanceMutation(left))
+            // Event hookup (Click +=) is wiring, not state reasoning.
+            if (IsEventHookup(left))
+                return;
+
+            // Constructors / UI-DI composition helpers: the whole body is chrome wiring.
+            // Loop locals over fields (btn.Margin = …) still count as composition here.
+            if (_context.CheapInstanceInit && LooksLikeMutationTarget(left))
             {
                 if (_cheapInstanceInitPoints >= ScoringContext.MaxCheapInstanceInitPoints)
                     return;
 
                 _cheapInstanceInitPoints++;
+                _externalMutationPoints += 1;
+                return;
+            }
+
+            // Ordinary methods: writing own fields / owned controls is surface chrome (capped).
+            // True "external mutation" cost is reserved for parameters and foreign objects.
+            if (IsSelfInstanceMutation(left))
+            {
+                if (_ownedSurfaceUpdatePoints >= ScoringContext.MaxOwnedSurfaceUpdatePoints)
+                    return;
+
+                _ownedSurfaceUpdatePoints++;
                 _externalMutationPoints += 1;
                 return;
             }
@@ -315,16 +344,48 @@ internal static class ReadabilityScorer
             }
         }
 
+        private bool LooksLikeMutationTarget(ExpressionSyntax left)
+            => IsSelfInstanceMutation(left) || TryGetExternalMutationTarget(left, out _);
+
+        private bool ShouldIgnoreConsumedFactory(ExpressionSyntax expression)
+        {
+            // In constructors / panel builders, factory calls that produce controls are composition, not bookkeeping.
+            if (!_context.CheapInstanceInit)
+                return false;
+
+            return ContainsConsumedInvocation(expression);
+        }
+
+        private bool IsBoilerplateGuardThrow(ExpressionSyntax? expression)
+        {
+            if (expression is null)
+                return _context.IsConstructor;
+
+            expression = Unwrap(expression);
+            if (expression is not ObjectCreationExpressionSyntax creation)
+                return false;
+
+            var typeName = creation.Type.ToString();
+            return typeName.IndexOf("ArgumentNullException", StringComparison.Ordinal) >= 0
+                   || typeName.IndexOf("ArgumentOutOfRangeException", StringComparison.Ordinal) >= 0
+                   || typeName.IndexOf("ArgumentException", StringComparison.Ordinal) >= 0;
+        }
+
+        private bool IsEventHookup(ExpressionSyntax left)
+        {
+            left = Unwrap(left);
+            if (left is not MemberAccessExpressionSyntax member)
+                return false;
+
+            return _model.GetSymbolInfo(member, _cancellationToken).Symbol is IEventSymbol;
+        }
+
         private bool IsDependencyInjectionStore(ExpressionSyntax left, ExpressionSyntax right)
         {
-            right = Unwrap(right);
-            if (right is not IdentifierNameSyntax rightName)
-                return false;
-
-            if (_model.GetSymbolInfo(rightName, _cancellationToken).Symbol is not IParameterSymbol parameter)
-                return false;
-
             if (!TryGetAssignedInstanceMember(left, out var member))
+                return false;
+
+            if (!TryGetInjectedParameter(right, out var parameter))
                 return false;
 
             // In constructors, any parameter stored into instance state is ordinary DI wiring.
@@ -333,6 +394,31 @@ internal static class ReadabilityScorer
 
             // Elsewhere, only the classic name match (_foo/foo/Foo ← foo) counts as free injection.
             return NamesMatchForInjection(member.Name, parameter.Name);
+        }
+
+        private bool TryGetInjectedParameter(ExpressionSyntax right, out IParameterSymbol parameter)
+        {
+            parameter = null!;
+            right = Unwrap(right);
+
+            if (right is IdentifierNameSyntax rightName
+                && _model.GetSymbolInfo(rightName, _cancellationToken).Symbol is IParameterSymbol direct)
+            {
+                parameter = direct;
+                return true;
+            }
+
+            // speech ?? throw new ArgumentNullException(nameof(speech))
+            if (right is BinaryExpressionSyntax coalesce
+                && coalesce.IsKind(SyntaxKind.CoalesceExpression)
+                && Unwrap(coalesce.Left) is IdentifierNameSyntax leftName
+                && _model.GetSymbolInfo(leftName, _cancellationToken).Symbol is IParameterSymbol coalesced)
+            {
+                parameter = coalesced;
+                return true;
+            }
+
+            return false;
         }
 
         private bool TryGetAssignedInstanceMember(ExpressionSyntax left, out ISymbol member)
@@ -549,15 +635,109 @@ internal static class ReadabilityScorer
                    || expression is MemberAccessExpressionSyntax;
         }
 
-        private static bool IsObjectCreation(ExpressionSyntax expression)
+        private bool IsOwnedLocalInitializer(ExpressionSyntax expression)
         {
             expression = Unwrap(expression);
-            return expression is ObjectCreationExpressionSyntax
-                   or ImplicitObjectCreationExpressionSyntax
-                   or ArrayCreationExpressionSyntax
-                   or StackAllocArrayCreationExpressionSyntax
-                   or CollectionExpressionSyntax
-                   or AnonymousObjectCreationExpressionSyntax;
+            if (IsFactoryOrCreation(expression))
+                return true;
+
+            // Alias of an instance field: var btn = _openButton; btn.Margin = …
+            if (IsInstanceFieldOrPropertyReference(expression))
+                return true;
+
+            // In composition helpers, theme factories (Button/Heading/…) are ownership, not bookkeeping.
+            if (_context.CheapInstanceInit && expression is InvocationExpressionSyntax)
+                return true;
+
+            return false;
+        }
+
+        private bool IsOwnedForeachCollection(ExpressionSyntax expression)
+        {
+            expression = Unwrap(expression);
+
+            // foreach (var btn in new[] { _a, _b }) / [_a, _b]
+            if (expression is ArrayCreationExpressionSyntax { Initializer: { } arrayInit })
+                return arrayInit.Expressions.Count > 0
+                       && arrayInit.Expressions.All(IsInstanceFieldOrPropertyReference);
+
+            if (expression is ImplicitArrayCreationExpressionSyntax implicitArray)
+                return implicitArray.Initializer.Expressions.Count > 0
+                       && implicitArray.Initializer.Expressions.All(IsInstanceFieldOrPropertyReference);
+
+            if (expression is CollectionExpressionSyntax collection)
+            {
+                var elements = collection.Elements.OfType<ExpressionElementSyntax>().Select(e => e.Expression).ToList();
+                return elements.Count > 0 && elements.All(IsInstanceFieldOrPropertyReference);
+            }
+
+            return IsInstanceFieldOrPropertyReference(expression);
+        }
+
+        private bool IsInstanceFieldOrPropertyReference(ExpressionSyntax expression)
+        {
+            expression = Unwrap(expression);
+
+            if (expression is IdentifierNameSyntax identifier)
+            {
+                var symbol = _model.GetSymbolInfo(identifier, _cancellationToken).Symbol;
+                return symbol is IFieldSymbol { IsStatic: false } or IPropertySymbol { IsStatic: false };
+            }
+
+            if (expression is MemberAccessExpressionSyntax member
+                && IsThisOrImplicitThisReceiver(member.Expression))
+            {
+                var symbol = _model.GetSymbolInfo(member, _cancellationToken).Symbol;
+                return symbol is IFieldSymbol { IsStatic: false } or IPropertySymbol { IsStatic: false };
+            }
+
+            return false;
+        }
+
+        private static bool IsFactoryOrCreation(ExpressionSyntax expression)
+        {
+            expression = Unwrap(expression);
+            if (expression is ObjectCreationExpressionSyntax
+                or ImplicitObjectCreationExpressionSyntax
+                or ArrayCreationExpressionSyntax
+                or StackAllocArrayCreationExpressionSyntax
+                or CollectionExpressionSyntax
+                or AnonymousObjectCreationExpressionSyntax)
+            {
+                return true;
+            }
+
+            // var button = CreatePrimaryButton(); / BuildPanel();
+            if (expression is InvocationExpressionSyntax invocation)
+                return IsFactoryMethodName(GetInvokedName(invocation));
+
+            if (expression is AwaitExpressionSyntax awaitExpr)
+                return IsFactoryOrCreation(awaitExpr.Expression);
+
+            return false;
+        }
+
+        private static string? GetInvokedName(InvocationExpressionSyntax invocation)
+        {
+            return Unwrap(invocation.Expression) switch
+            {
+                IdentifierNameSyntax id => id.Identifier.ValueText,
+                MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
+                MemberBindingExpressionSyntax binding => binding.Name.Identifier.ValueText,
+                _ => null,
+            };
+        }
+
+        private static bool IsFactoryMethodName(string? name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return false;
+
+            return name!.StartsWith("Create", StringComparison.Ordinal)
+                   || name.StartsWith("Build", StringComparison.Ordinal)
+                   || name.StartsWith("Make", StringComparison.Ordinal)
+                   || name.StartsWith("New", StringComparison.Ordinal)
+                   || name.Equals("Factory", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsObjectOrCollectionInitializerAssignment(AssignmentExpressionSyntax node)

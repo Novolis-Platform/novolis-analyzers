@@ -433,7 +433,236 @@ public sealed class ReadabilityComplexityAnalyzerTests
         await Assert.That(ScoringContext.IsInitLikeName("Build")).IsFalse();
         await Assert.That(ScoringContext.IsInitLikeName("Initialize")).IsFalse();
         await Assert.That(ScoringContext.IsInitLikeName("ProcessAsync")).IsFalse();
-        await Assert.That(ScoringContext.IsInitLikeName("RefreshListen")).IsFalse();
+        await Assert.That(ScoringContext.IsInitLikeName("RefreshListen")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("UpdateViewState")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("ApplyState")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("Main")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("OnCreate")).IsTrue();
+        await Assert.That(ScoringContext.IsInitLikeName("OnFrameworkInitializationCompleted")).IsTrue();
+    }
+
+    [Test]
+    public async Task ConstructorThemeFactoryAndForeachFieldChrome_IsCappedCheap()
+    {
+        const string code = """
+                            public class Shell
+                            {
+                                private Control _a = null!;
+                                private Control _b = null!;
+                                private Control _c = null!;
+                                private Control _d = null!;
+                                private Control _e = null!;
+                                private Control _f = null!;
+
+                                public Shell()
+                                {
+                                    _a = Theme.Button("A");
+                                    _b = Theme.Button("B");
+                                    _c = Theme.Button("C");
+                                    _d = Theme.Button("D");
+                                    _e = Theme.Button("E");
+                                    _f = Theme.Button("F");
+                                    foreach (var btn in new[] { _a, _b, _c, _d, _e, _f })
+                                    {
+                                        btn.Margin = 1;
+                                        btn.IsEnabled = true;
+                                    }
+                                }
+                            }
+
+                            public static class Theme
+                            {
+                                public static Control Button(string text) => new Control { Text = text };
+                            }
+
+                            public class Control
+                            {
+                                public string Text { get; set; }
+                                public int Margin { get; set; }
+                                public bool IsEnabled { get; set; }
+                            }
+                            """;
+
+        var score = await ScoreConstructorAsync(code);
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(5);
+        await Assert.That(score.ConsumedResults).IsEqualTo(0);
+        await Assert.That(score.Total).IsLessThan(20);
+    }
+
+    [Test]
+    public async Task ConstructorDiWithNullCoalesceThrow_IsFree()
+    {
+        const string code = """
+                            public class Processor
+                            {
+                                private readonly IRepository _repository;
+
+                                public Processor(IRepository repository)
+                                {
+                                    _repository = repository ?? throw new System.ArgumentNullException(nameof(repository));
+                                }
+                            }
+
+                            public interface IRepository { }
+                            """;
+
+        var score = await ScoreConstructorAsync(code);
+        await Assert.That(score.Total).IsEqualTo(0);
+        await Assert.That(score.ThrowPoints).IsEqualTo(0);
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task FactoryLocal_MutationsAreFree()
+    {
+        const string code = """
+                            public class Builder
+                            {
+                                public object BuildRow()
+                                {
+                                    var button = CreateButton();
+                                    button.Text = "Go";
+                                    button.IsEnabled = true;
+                                    return button;
+                                }
+
+                                private Control CreateButton() => new Control();
+                            }
+
+                            public class Control
+                            {
+                                public string Text { get; set; }
+                                public bool IsEnabled { get; set; }
+                            }
+                            """;
+
+        var score = await ScoreMethodAsync(code, "BuildRow");
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(0);
+        await Assert.That(score.Declarations).IsEqualTo(1);
+        await Assert.That(score.ConsumedResults).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task OwnedSurfacePropertyStamps_AreCapped()
+    {
+        const string code = """
+                            public class View
+                            {
+                                private readonly Control _a = new Control();
+                                private readonly Control _b = new Control();
+                                private readonly Control _c = new Control();
+                                private readonly Control _d = new Control();
+                                private readonly Control _e = new Control();
+                                private readonly Control _f = new Control();
+                                private readonly Control _g = new Control();
+                                private readonly Control _h = new Control();
+                                private readonly Control _i = new Control();
+                                private readonly Control _j = new Control();
+                                private readonly Control _k = new Control();
+                                private readonly Control _l = new Control();
+
+                                public void Paint()
+                                {
+                                    _a.IsVisible = true;
+                                    _b.IsVisible = true;
+                                    _c.IsVisible = true;
+                                    _d.IsVisible = true;
+                                    _e.IsVisible = true;
+                                    _f.IsVisible = true;
+                                    _g.IsVisible = true;
+                                    _h.IsVisible = true;
+                                    _i.IsVisible = true;
+                                    _j.IsVisible = true;
+                                    _k.IsVisible = true;
+                                    _l.IsVisible = true;
+                                }
+                            }
+
+                            public class Control { public bool IsVisible { get; set; } }
+                            """;
+
+        var score = await ScoreMethodAsync(code, "Paint");
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(10);
+        await Assert.That(score.Total).IsEqualTo(10);
+    }
+
+    [Test]
+    public async Task InstanceFieldWrites_AreCappedLikeSurfaceChrome()
+    {
+        const string code = """
+                            public class View
+                            {
+                                private bool _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
+
+                                public void Reset()
+                                {
+                                    _a = true; _b = true; _c = true; _d = true;
+                                    _e = true; _f = true; _g = true; _h = true;
+                                    _i = true; _j = true; _k = true; _l = true;
+                                }
+                            }
+                            """;
+
+        var score = await ScoreMethodAsync(code, "Reset");
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(10);
+        await Assert.That(score.Total).IsEqualTo(10);
+    }
+
+    [Test]
+    public async Task RefreshMethod_TreatsSurfaceWiringAsCheap()
+    {
+        const string code = """
+                            public class View
+                            {
+                                private readonly Control _panel = new Control();
+                                private readonly Control _label = new Control();
+                                private readonly Control _button = new Control();
+                                private readonly Control _status = new Control();
+                                private readonly Control _banner = new Control();
+                                private readonly Control _footer = new Control();
+
+                                public void RefreshListen(bool visible)
+                                {
+                                    _panel.IsVisible = visible;
+                                    _label.Text = "x";
+                                    _button.IsEnabled = visible;
+                                    _status.Text = "y";
+                                    _banner.IsVisible = visible;
+                                    _footer.IsVisible = visible;
+                                }
+                            }
+
+                            public class Control
+                            {
+                                public bool IsVisible { get; set; }
+                                public bool IsEnabled { get; set; }
+                                public string Text { get; set; }
+                            }
+                            """;
+
+        var score = await ScoreMethodAsync(code, "RefreshListen");
+        await Assert.That(score.ExternalMutationPoints).IsEqualTo(5);
+        await Assert.That(score.Total).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task ArgumentNullGuardThrow_IsFree()
+    {
+        const string code = """
+                            public class Guard
+                            {
+                                public void Run(string name)
+                                {
+                                    if (name is null)
+                                        throw new System.ArgumentNullException(nameof(name));
+                                }
+                            }
+                            """;
+
+        var score = await ScoreMethodAsync(code, "Run");
+        await Assert.That(score.ThrowPoints).IsEqualTo(0);
+        await Assert.That(score.Decisions).IsEqualTo(1);
+        await Assert.That(score.Total).IsEqualTo(1);
     }
 
     private static async Task<ReadabilityScore> ScoreMethodAsync(string code, string methodName)
